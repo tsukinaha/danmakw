@@ -1,0 +1,358 @@
+use crate::{CenterDanmaku, Color, Danmaku, DanmakuMode, ScrollingDanmaku};
+use glyphon::{
+    Attrs, Buffer, Cache, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea,
+    TextAtlas, TextBounds, TextRenderer, Viewport, Weight,
+};
+use wgpu::{
+    CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
+    RenderPassDescriptor, TextureFormat,
+};
+
+pub struct RendererInner<'a> {
+    font_system: FontSystem,
+    swash_cache: SwashCache,
+    viewport: glyphon::Viewport,
+    atlas: glyphon::TextAtlas,
+    text_renderer: glyphon::TextRenderer,
+
+    pub paused: bool,
+
+    pub scroll_danmaku: Vec<ScrollingDanmaku<'a>>,
+    pub scroll_max_rows: usize,
+    pub scroll_row_entry_occupied: Vec<bool>,
+
+    pub top_center_danmaku: Vec<CenterDanmaku<'a>>,
+    pub top_center_max_rows: usize,
+    pub top_center_row_occupied: Vec<bool>,
+
+    pub bottom_center_danmaku: Vec<CenterDanmaku<'a>>,
+    pub bottom_center_max_rows: usize,
+    pub bottom_center_row_occupied: Vec<bool>,
+
+    pub line_height: f32,
+    pub top_padding: f32,
+    pub font_size: f32,
+    last_update: std::time::Instant,
+    pub scale_factor: f64,
+    pub speed_factor: f64,
+}
+
+impl<'a> RendererInner<'a> {
+    pub fn add_scroll_danmaku(
+        &mut self,
+        text_buffer: Buffer,
+        width: f32,
+        text_width: f32,
+        danmaku: Danmaku<'a>,
+    ) {
+        let Some(target_row) = self
+            .scroll_row_entry_occupied
+            .iter()
+            .position(|&occupied| !occupied)
+        else {
+            return;
+        };
+
+        self.scroll_row_entry_occupied[target_row] = true;
+
+        self.scroll_danmaku.push(ScrollingDanmaku {
+            danmaku,
+            buffer: text_buffer,
+            x: width,
+            row: target_row,
+            velocity_x: -200.0,
+            width: text_width,
+        });
+    }
+
+    pub fn add_topcenter_danmaku(
+        &mut self,
+        text_buffer: Buffer,
+        _width: f32,
+        text_width: f32,
+        danmaku: Danmaku<'a>,
+    ) {
+        let Some(target_row) = self
+            .top_center_row_occupied
+            .iter()
+            .position(|&occupied| !occupied)
+        else {
+            return;
+        };
+
+        self.top_center_row_occupied[target_row] = true;
+
+        self.top_center_danmaku.push(CenterDanmaku {
+            danmaku,
+            buffer: text_buffer,
+            width: text_width,
+            row: target_row,
+            start_time: std::time::Instant::now(),
+        });
+    }
+
+    fn add_bottomcenter_danmaku(
+        &mut self,
+        text_buffer: Buffer,
+        _width: f32,
+        text_width: f32,
+        danmaku: Danmaku<'a>,
+    ) {
+        let Some(target_row) = self
+            .bottom_center_row_occupied
+            .iter()
+            .position(|&occupied| !occupied)
+        else {
+            return;
+        };
+
+        self.bottom_center_row_occupied[target_row] = true;
+
+        self.bottom_center_danmaku.push(CenterDanmaku {
+            danmaku,
+            buffer: text_buffer,
+            width: text_width,
+            row: target_row,
+            start_time: std::time::Instant::now(),
+        });
+    }
+}
+
+impl<'a> RendererInner<'a> {
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: TextureFormat,
+        scale_factor: f64,
+    ) -> Self {
+        let font_system = FontSystem::new();
+        let swash_cache = SwashCache::new();
+        let cache = Cache::new(device);
+        let viewport = Viewport::new(device, &cache);
+        let mut atlas = TextAtlas::new(device, queue, &cache, format);
+        let text_renderer =
+            TextRenderer::new(&mut atlas, device, MultisampleState::default(), None);
+
+        let scroll_max_rows = 20;
+        let top_center_max_rows = 10;
+        let bottom_center_max_rows = 10;
+        let line_height = 30.0 * scale_factor as f32;
+        let top_padding = 10.0 * scale_factor as f32;
+        let font_size = 24.0 * scale_factor as f32;
+        let speed_factor = 1.0;
+
+        let scroll_row_entry_occupied = vec![false; scroll_max_rows];
+        let top_center_row_occupied = vec![false; top_center_max_rows];
+        let bottom_center_row_occupied = vec![false; bottom_center_max_rows];
+
+        Self {
+            font_system,
+            swash_cache,
+            viewport,
+            atlas,
+            text_renderer,
+            scroll_danmaku: Vec::new(),
+            top_center_danmaku: Vec::new(),
+            bottom_center_danmaku: Vec::new(),
+            scroll_max_rows,
+            top_center_max_rows,
+            bottom_center_max_rows,
+            line_height,
+            top_padding,
+            font_size,
+            last_update: std::time::Instant::now(),
+            scale_factor,
+            speed_factor,
+            scroll_row_entry_occupied,
+            top_center_row_occupied,
+            bottom_center_row_occupied,
+            paused: false,
+        }
+    }
+
+    pub fn add_text(&mut self, width: u32, _height: u32, danmaku: Danmaku<'a>) {
+        let font_size = self.font_size;
+        let metrics = Metrics::new(font_size, self.line_height);
+        let mut text_buffer = Buffer::new(&mut self.font_system, metrics);
+        let text_attrs = Attrs::new()
+            .family(Family::Name("LXGW WenKai Screen"))
+            .weight(Weight::NORMAL);
+
+        text_buffer.set_text(
+            &mut self.font_system,
+            danmaku.content,
+            &text_attrs,
+            Shaping::Advanced,
+        );
+
+        let text_width = text_buffer
+            .layout_runs()
+            .map(|run| run.line_w)
+            .reduce(f32::max)
+            .unwrap_or(0.0);
+
+        match danmaku.mode {
+            DanmakuMode::Scroll => {
+                self.add_scroll_danmaku(text_buffer, width as f32, text_width, danmaku);
+            }
+            DanmakuMode::TopCenter => {
+                self.add_topcenter_danmaku(text_buffer, width as f32, text_width, danmaku);
+            }
+            DanmakuMode::BottomCenter => {
+                self.add_bottomcenter_danmaku(text_buffer, width as f32, text_width, danmaku);
+            }
+        }
+    }
+    pub fn update(&mut self) {
+        if self.paused {
+            return;
+        }
+
+        let now = std::time::Instant::now();
+        let delta_time = now.duration_since(self.last_update).as_secs_f32();
+        self.last_update = now;
+
+        for occupied in self.scroll_row_entry_occupied.iter_mut() {
+            *occupied = false;
+        }
+
+        for text in self.scroll_danmaku.iter_mut() {
+            text.x += text.velocity_x * delta_time * self.speed_factor as f32;
+            if text.x + text.width > self.viewport.resolution().width as f32 - 5.0 {
+                if let Some(occupied) = self.scroll_row_entry_occupied.get_mut(text.row) {
+                    *occupied = true;
+                }
+            }
+        }
+
+        self.scroll_danmaku.retain(|text| text.x + text.width > 0.0);
+
+        self.top_center_danmaku.retain(|text| {
+            let elapsed_time = text.start_time.elapsed().as_secs_f32();
+            if elapsed_time < 5.0 {
+                true
+            } else {
+                if let Some(occupied) = self.top_center_row_occupied.get_mut(text.row) {
+                    *occupied = false;
+                }
+                false
+            }
+        });
+
+        self.bottom_center_danmaku.retain(|text| {
+            let elapsed_time = text.start_time.elapsed().as_secs_f32();
+            if elapsed_time < 5.0 {
+                true
+            } else {
+                if let Some(occupied) = self.bottom_center_row_occupied.get_mut(text.row) {
+                    *occupied = false;
+                }
+                false
+            }
+        });
+
+        self.scroll_danmaku.retain(|text| text.x + text.width > 0.0);
+    }
+
+    pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
+        self.viewport.update(queue, Resolution { width, height });
+    }
+
+    pub fn render(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+    ) -> Result<(), wgpu::SurfaceError> {
+        let instant = std::time::Instant::now();
+
+        let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
+            let top_y = self.top_padding + (text.row as f32 * self.line_height);
+            let Color { r, g, b, a } = text.danmaku.color;
+            TextArea {
+                buffer: &mut text.buffer,
+                left: text.x,
+                top: top_y,
+                scale: 1.0,
+                bounds: TextBounds::default(),
+                default_color: glyphon::Color::rgba(r, g, b, a),
+                custom_glyphs: &[],
+            }
+        });
+
+        let top_center_areas = self.top_center_danmaku.iter_mut().map(|text| {
+            let Color { r, g, b, a } = text.danmaku.color;
+            TextArea {
+                buffer: &mut text.buffer,
+                left: (width as f32 - text.width) / 2.0,
+                top: self.top_padding + (text.row as f32 * self.line_height),
+                scale: 1.0,
+                bounds: TextBounds::default(),
+                default_color: glyphon::Color::rgba(r, g, b, a),
+                custom_glyphs: &[],
+            }
+        });
+
+        let bottom_center_areas = self.bottom_center_danmaku.iter_mut().map(|text| {
+            let Color { r, g, b, a } = text.danmaku.color;
+            TextArea {
+                buffer: &mut text.buffer,
+                left: (width as f32 - text.width) / 2.0,
+                top: height as f32 - self.top_padding - ((text.row + 1) as f32 * self.line_height),
+                scale: 1.0,
+                bounds: TextBounds::default(),
+                default_color: glyphon::Color::rgba(r, g, b, a),
+                custom_glyphs: &[],
+            }
+        });
+
+        let areas = scroll_areas
+            .chain(top_center_areas)
+            .chain(bottom_center_areas);
+
+        self.text_renderer
+            .prepare(
+                device,
+                queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                &self.viewport,
+                areas,
+                &mut self.swash_cache,
+            )
+            .unwrap();
+
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+        {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+            self.text_renderer
+                .render(&self.atlas, &self.viewport, &mut pass)
+                .unwrap();
+        }
+
+        queue.submit(Some(encoder.finish()));
+        self.atlas.trim();
+
+        println!("Frame Time: {:?}", instant.elapsed());
+
+        Ok(())
+    }
+}
