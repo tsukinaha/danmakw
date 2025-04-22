@@ -11,6 +11,6 @@ pollster = "0.4"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 rand = "0.9"
-glyphon = "0.9"
+glyphon = { git = "https://github.com/tsukinaha/glyphon.git" }
 quick-xml = { version = "0.37.4", features = ["serialize"] }
 thiserror = "2.0"

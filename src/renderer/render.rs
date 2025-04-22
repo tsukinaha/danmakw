@@ -285,8 +285,6 @@ impl RendererInner {
         width: u32,
         height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
-        let instant = std::time::Instant::now();
-
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
             let Color { r, g, b, a } = text.danmaku.color;
@@ -331,8 +329,6 @@ impl RendererInner {
             .chain(top_center_areas)
             .chain(bottom_center_areas);
 
-        println!("Before Prepare Time: {:?}", instant.elapsed());
-
         self.text_renderer
             .prepare(
                 device,
@@ -345,8 +341,6 @@ impl RendererInner {
             )
             .unwrap();
 
-        println!("After Prepare Time: {:?}", instant.elapsed());
-
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("Render Encoder"),
         });
@@ -357,7 +351,7 @@ impl RendererInner {
                     view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Clear(wgpu::Color::BLACK),
+                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -373,8 +367,6 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
         self.atlas.trim();
-
-        println!("Frame Time: {:?}", instant.elapsed());
 
         Ok(())
     }

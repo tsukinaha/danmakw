@@ -64,7 +64,7 @@ impl WindowState {
             format: surface_format,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: PresentMode::Fifo,
+            present_mode: PresentMode::Mailbox,
             alpha_mode: CompositeAlphaMode::PreMultiplied,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
