@@ -58,7 +58,7 @@ pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError>
                 let color_val: u32 = parts[3].parse()?;
                 // parts[4] Unix Timestamp
                 // parts[5] Danmaku Pool ID
-                // parts[6] Uer ID Hash
+                // parts[6] User ID Hash
                 // parts[7] Danmaku ID
 
                 let mode = match mode_val {
