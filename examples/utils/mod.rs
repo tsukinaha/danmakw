@@ -1,7 +1,13 @@
-use danmakw::{Color, Danmaku, DanmakuMode};
+use danmakw::{
+    Color,
+    Danmaku,
+    DanmakuMode,
+};
+use quick_xml::{
+    Reader,
+    events::Event,
+};
 use thiserror::Error;
-use quick_xml::events::Event;
-use quick_xml::Reader;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -32,7 +38,7 @@ pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError>
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) if e.name().as_ref() == b"d" => {
                 let p_attr_result = e
                     .attributes()
-                    .find(|attr| attr.as_ref().map_or(false, |a| a.key.as_ref() == b"p"))
+                    .find(|attr| attr.as_ref().is_ok_and(|a| a.key.as_ref() == b"p"))
                     .ok_or_else(|| ParseError::InvalidPFormat("Missing 'p' attribute".to_string()));
 
                 let p_attr = match p_attr_result {
@@ -80,7 +86,6 @@ pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError>
                     Ok(text_cow) => text_cow.into_owned(),
                     Err(err) => return Err(ParseError::Xml(err)),
                 };
-
 
                 danmakus.push(Danmaku {
                     content,

@@ -1,8 +1,15 @@
 use danmakw::Renderer;
 use std::sync::Arc;
 use wgpu::{
-    CompositeAlphaMode, DeviceDescriptor, Instance, InstanceDescriptor, PresentMode,
-    RequestAdapterOptions, SurfaceConfiguration, TextureUsages, TextureViewDescriptor,
+    CompositeAlphaMode,
+    DeviceDescriptor,
+    Instance,
+    InstanceDescriptor,
+    PresentMode,
+    RequestAdapterOptions,
+    SurfaceConfiguration,
+    TextureUsages,
+    TextureViewDescriptor,
 };
 use winit::{
     dpi::LogicalSize,
@@ -120,10 +127,8 @@ impl winit::application::ApplicationHandler for Application {
     }
 
     fn window_event(
-        &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-        _window_id: winit::window::WindowId,
-        event: WindowEvent,
+        &mut self, event_loop: &winit::event_loop::ActiveEventLoop,
+        _window_id: winit::window::WindowId, event: WindowEvent,
     ) {
         let Some(state) = &mut self.window_state else {
             return;

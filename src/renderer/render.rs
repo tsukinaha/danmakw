@@ -1,11 +1,36 @@
-use crate::{CenterDanmaku, Color, Danmaku, DanmakuMode, ScrollingDanmaku, danmaku::DanmakuQueue};
+use crate::{
+    CenterDanmaku,
+    Color,
+    Danmaku,
+    DanmakuMode,
+    ScrollingDanmaku,
+    danmaku::DanmakuQueue,
+};
 use glyphon::{
-    Attrs, Buffer, Cache, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea,
-    TextAtlas, TextBounds, TextRenderer, Viewport, Weight,
+    Attrs,
+    Buffer,
+    Cache,
+    Family,
+    FontSystem,
+    Metrics,
+    Resolution,
+    Shaping,
+    SwashCache,
+    TextArea,
+    TextAtlas,
+    TextBounds,
+    TextRenderer,
+    Viewport,
+    Weight,
 };
 use wgpu::{
-    CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
-    RenderPassDescriptor, TextureFormat,
+    CommandEncoderDescriptor,
+    LoadOp,
+    MultisampleState,
+    Operations,
+    RenderPassColorAttachment,
+    RenderPassDescriptor,
+    TextureFormat,
 };
 
 pub struct RendererInner {
@@ -44,15 +69,11 @@ const SCROLL_DURATION_MS: f32 = 8000.0;
 
 impl RendererInner {
     pub fn add_scroll_danmaku(
-        &mut self,
-        text_buffer: Buffer,
-        width: f32,
-        text_width: f32,
-        danmaku: Danmaku,
+        &mut self, text_buffer: Buffer, width: f32, text_width: f32, danmaku: Danmaku,
     ) {
-        let velocity_x = -(width + text_width) / SCROLL_DURATION_MS  * self.speed_factor as f32;
-        
-        let v= velocity_x.abs();
+        let velocity_x = -(width + text_width) / SCROLL_DURATION_MS * self.speed_factor as f32;
+
+        let v = velocity_x.abs();
 
         let mut found_row: Option<usize> = None;
 
@@ -70,9 +91,12 @@ impl RendererInner {
                 break;
             };
 
-            let leave_time = (last_in_row.x + last_in_row.width + self.spacing) / last_in_row.velocity_x.abs();
+            let leave_time =
+                (last_in_row.x + last_in_row.width + self.spacing) / last_in_row.velocity_x.abs();
 
-            if leave_time < reach_edge_time && width > last_in_row.width + self.spacing + last_in_row.x {
+            if leave_time < reach_edge_time
+                && width > last_in_row.width + self.spacing + last_in_row.x
+            {
                 found_row = Some(target_row);
                 break;
             }
@@ -93,11 +117,7 @@ impl RendererInner {
     }
 
     pub fn add_topcenter_danmaku(
-        &mut self,
-        text_buffer: Buffer,
-        _width: f32,
-        text_width: f32,
-        danmaku: Danmaku,
+        &mut self, text_buffer: Buffer, _width: f32, text_width: f32, danmaku: Danmaku,
     ) {
         let Some(target_row) = self
             .top_center_row_occupied
@@ -119,11 +139,7 @@ impl RendererInner {
     }
 
     fn add_bottomcenter_danmaku(
-        &mut self,
-        text_buffer: Buffer,
-        _width: f32,
-        text_width: f32,
-        danmaku: Danmaku,
+        &mut self, text_buffer: Buffer, _width: f32, text_width: f32, danmaku: Danmaku,
     ) {
         let Some(target_row) = self
             .bottom_center_row_occupied
@@ -147,10 +163,7 @@ impl RendererInner {
 
 impl RendererInner {
     pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: TextureFormat,
-        scale_factor: f64,
+        device: &wgpu::Device, queue: &wgpu::Queue, format: TextureFormat, scale_factor: f64,
     ) -> Self {
         let font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
@@ -240,7 +253,7 @@ impl RendererInner {
         }
 
         for next_danmaku in self.danmaku_queue.pop_to_time(self.video_time) {
-            dbg!("New Danmaku: {:?}", &next_danmaku);
+            dbg!(&next_danmaku);
             self.add_text(next_danmaku);
         }
 
@@ -293,12 +306,8 @@ impl RendererInner {
     }
 
     pub fn render(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        view: &wgpu::TextureView,
-        width: u32,
-        height: u32,
+        &mut self, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView,
+        width: u32, height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
         let instant = std::time::Instant::now();
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
@@ -384,7 +393,7 @@ impl RendererInner {
         queue.submit(Some(encoder.finish()));
         self.atlas.trim();
 
-        dbg!("Frame Time: {:?}", instant.elapsed());
+        dbg!(instant.elapsed());
 
         Ok(())
     }

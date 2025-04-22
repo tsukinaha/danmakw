@@ -8,10 +8,7 @@ pub struct Renderer(pub RendererInner);
 
 impl Renderer {
     pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        format: TextureFormat,
-        scale_factor: f64,
+        device: &wgpu::Device, queue: &wgpu::Queue, format: TextureFormat, scale_factor: f64,
     ) -> Self {
         Self(RendererInner::new(device, queue, format, scale_factor))
     }
@@ -40,12 +37,8 @@ impl Renderer {
     }
 
     pub fn render(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        view: &wgpu::TextureView,
-        width: u32,
-        height: u32,
+        &mut self, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView,
+        width: u32, height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
         self.0.render(device, queue, view, width, height)
     }
