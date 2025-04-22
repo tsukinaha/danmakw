@@ -1,5 +1,4 @@
-use danmakw::{Renderer, TEST_DANMAKU_MAP};
-use rand::Rng;
+use danmakw::Renderer;
 use std::sync::Arc;
 use wgpu::{
     CompositeAlphaMode, DeviceDescriptor, Instance, InstanceDescriptor, PresentMode,
@@ -7,10 +6,12 @@ use wgpu::{
 };
 use winit::{
     dpi::LogicalSize,
-    event::{ElementState, MouseButton, WindowEvent},
+    event::WindowEvent,
     event_loop::EventLoop,
     window::Window,
 };
+
+mod utils;
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
@@ -19,16 +20,16 @@ fn main() {
         .unwrap();
 }
 
-struct WindowState<'a> {
+struct WindowState {
     device: wgpu::Device,
     queue: wgpu::Queue,
     surface: wgpu::Surface<'static>,
     surface_config: SurfaceConfiguration,
-    renderer: Renderer<'a>,
+    renderer: Renderer,
     window: Arc<Window>,
 }
 
-impl<'a> WindowState<'a> {
+impl WindowState {
     async fn new(window: Arc<Window>) -> Self {
         let physical_size = window.inner_size();
         let scale_factor = window.scale_factor();
@@ -63,14 +64,18 @@ impl<'a> WindowState<'a> {
             format: surface_format,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: PresentMode::Mailbox,
+            present_mode: PresentMode::Fifo,
             alpha_mode: CompositeAlphaMode::PreMultiplied,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &surface_config);
 
-        let renderer = danmakw::Renderer::new(&device, &queue, surface_format, scale_factor);
+        let mut renderer = danmakw::Renderer::new(&device, &queue, surface_format, scale_factor);
+
+        let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
+
+        renderer.init(danmakus);
 
         Self {
             device,
@@ -83,11 +88,11 @@ impl<'a> WindowState<'a> {
     }
 }
 
-struct Application<'a> {
-    window_state: Option<WindowState<'a>>,
+struct Application {
+    window_state: Option<WindowState>,
 }
 
-impl<'a> winit::application::ApplicationHandler for Application<'a> {
+impl winit::application::ApplicationHandler for Application {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if self.window_state.is_some() {
             return;
@@ -137,20 +142,6 @@ impl<'a> winit::application::ApplicationHandler for Application<'a> {
                     surface_config.height = size.height;
                     surface.configure(device, surface_config);
                     renderer.resize(queue, size.width, size.height);
-                    window.request_redraw();
-                }
-            }
-            WindowEvent::MouseInput {
-                state: element_state,
-                button: MouseButton::Left,
-                ..
-            } => {
-                if element_state == ElementState::Pressed {
-                    renderer.add_text(
-                        surface_config.width,
-                        surface_config.height,
-                        TEST_DANMAKU_MAP[rand::rng().random::<u32>() as usize % 10].clone(),
-                    );
                     window.request_redraw();
                 }
             }

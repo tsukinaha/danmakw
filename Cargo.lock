@@ -356,7 +356,9 @@ dependencies = [
  "cosmic-text",
  "glyphon",
  "pollster",
+ "quick-xml",
  "rand",
+ "thiserror 2.0.12",
  "tracing",
  "tracing-subscriber",
  "wgpu",
@@ -1344,6 +1346,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4ce8c88de324ff838700f36fb6ab86c96df0e3c4ab6ef3a9b2044465cce1369"
 dependencies = [
  "memchr",
+ "serde",
 ]
 
 [[package]]

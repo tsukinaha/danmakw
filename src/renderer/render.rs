@@ -1,4 +1,4 @@
-use crate::{CenterDanmaku, Color, Danmaku, DanmakuMode, ScrollingDanmaku};
+use crate::{CenterDanmaku, Color, Danmaku, DanmakuMode, ScrollingDanmaku, danmaku::DanmakuQueue};
 use glyphon::{
     Attrs, Buffer, Cache, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea,
     TextAtlas, TextBounds, TextRenderer, Viewport, Weight,
@@ -8,7 +8,10 @@ use wgpu::{
     RenderPassDescriptor, TextureFormat,
 };
 
-pub struct RendererInner<'a> {
+pub struct RendererInner {
+    pub danmaku_queue: DanmakuQueue,
+    pub video_time: f64,
+
     font_system: FontSystem,
     swash_cache: SwashCache,
     viewport: glyphon::Viewport,
@@ -17,15 +20,15 @@ pub struct RendererInner<'a> {
 
     pub paused: bool,
 
-    pub scroll_danmaku: Vec<ScrollingDanmaku<'a>>,
+    pub scroll_danmaku: Vec<ScrollingDanmaku>,
     pub scroll_max_rows: usize,
     pub scroll_row_entry_occupied: Vec<bool>,
 
-    pub top_center_danmaku: Vec<CenterDanmaku<'a>>,
+    pub top_center_danmaku: Vec<CenterDanmaku>,
     pub top_center_max_rows: usize,
     pub top_center_row_occupied: Vec<bool>,
 
-    pub bottom_center_danmaku: Vec<CenterDanmaku<'a>>,
+    pub bottom_center_danmaku: Vec<CenterDanmaku>,
     pub bottom_center_max_rows: usize,
     pub bottom_center_row_occupied: Vec<bool>,
 
@@ -37,13 +40,13 @@ pub struct RendererInner<'a> {
     pub speed_factor: f64,
 }
 
-impl<'a> RendererInner<'a> {
+impl RendererInner {
     pub fn add_scroll_danmaku(
         &mut self,
         text_buffer: Buffer,
         width: f32,
         text_width: f32,
-        danmaku: Danmaku<'a>,
+        danmaku: Danmaku,
     ) {
         let Some(target_row) = self
             .scroll_row_entry_occupied
@@ -60,7 +63,7 @@ impl<'a> RendererInner<'a> {
             buffer: text_buffer,
             x: width,
             row: target_row,
-            velocity_x: -200.0,
+            velocity_x: -0.2,
             width: text_width,
         });
     }
@@ -70,7 +73,7 @@ impl<'a> RendererInner<'a> {
         text_buffer: Buffer,
         _width: f32,
         text_width: f32,
-        danmaku: Danmaku<'a>,
+        danmaku: Danmaku,
     ) {
         let Some(target_row) = self
             .top_center_row_occupied
@@ -87,7 +90,7 @@ impl<'a> RendererInner<'a> {
             buffer: text_buffer,
             width: text_width,
             row: target_row,
-            start_time: std::time::Instant::now(),
+            remaining_time: 5000.0,
         });
     }
 
@@ -96,7 +99,7 @@ impl<'a> RendererInner<'a> {
         text_buffer: Buffer,
         _width: f32,
         text_width: f32,
-        danmaku: Danmaku<'a>,
+        danmaku: Danmaku,
     ) {
         let Some(target_row) = self
             .bottom_center_row_occupied
@@ -113,12 +116,12 @@ impl<'a> RendererInner<'a> {
             buffer: text_buffer,
             width: text_width,
             row: target_row,
-            start_time: std::time::Instant::now(),
+            remaining_time: 5000.0,
         });
     }
 }
 
-impl<'a> RendererInner<'a> {
+impl RendererInner {
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -146,6 +149,8 @@ impl<'a> RendererInner<'a> {
         let bottom_center_row_occupied = vec![false; bottom_center_max_rows];
 
         Self {
+            danmaku_queue: DanmakuQueue::new(),
+            video_time: 0.0,
             font_system,
             swash_cache,
             viewport,
@@ -170,7 +175,7 @@ impl<'a> RendererInner<'a> {
         }
     }
 
-    pub fn add_text(&mut self, width: u32, _height: u32, danmaku: Danmaku<'a>) {
+    pub fn add_text(&mut self, danmaku: Danmaku) {
         let font_size = self.font_size;
         let metrics = Metrics::new(font_size, self.line_height);
         let mut text_buffer = Buffer::new(&mut self.font_system, metrics);
@@ -180,7 +185,7 @@ impl<'a> RendererInner<'a> {
 
         text_buffer.set_text(
             &mut self.font_system,
-            danmaku.content,
+            &danmaku.content,
             &text_attrs,
             Shaping::Advanced,
         );
@@ -191,15 +196,17 @@ impl<'a> RendererInner<'a> {
             .reduce(f32::max)
             .unwrap_or(0.0);
 
+        let width = self.viewport.resolution().width as f32;
+
         match danmaku.mode {
             DanmakuMode::Scroll => {
-                self.add_scroll_danmaku(text_buffer, width as f32, text_width, danmaku);
+                self.add_scroll_danmaku(text_buffer, width, text_width, danmaku);
             }
             DanmakuMode::TopCenter => {
-                self.add_topcenter_danmaku(text_buffer, width as f32, text_width, danmaku);
+                self.add_topcenter_danmaku(text_buffer, width, text_width, danmaku);
             }
             DanmakuMode::BottomCenter => {
-                self.add_bottomcenter_danmaku(text_buffer, width as f32, text_width, danmaku);
+                self.add_bottomcenter_danmaku(text_buffer, width, text_width, danmaku);
             }
         }
     }
@@ -208,9 +215,15 @@ impl<'a> RendererInner<'a> {
             return;
         }
 
+        for next_danmaku in self.danmaku_queue.pop_to_time(self.video_time) {
+            dbg!("New Danmaku: {:?}", &next_danmaku);
+            self.add_text(next_danmaku);
+        }
+
         let now = std::time::Instant::now();
-        let delta_time = now.duration_since(self.last_update).as_secs_f32();
+        let delta_time = now.duration_since(self.last_update).as_millis_f32();
         self.last_update = now;
+        self.video_time += delta_time as f64;
 
         for occupied in self.scroll_row_entry_occupied.iter_mut() {
             *occupied = false;
@@ -227,9 +240,12 @@ impl<'a> RendererInner<'a> {
 
         self.scroll_danmaku.retain(|text| text.x + text.width > 0.0);
 
+        for text in self.top_center_danmaku.iter_mut() {
+            text.remaining_time -= delta_time;
+        }
+
         self.top_center_danmaku.retain(|text| {
-            let elapsed_time = text.start_time.elapsed().as_secs_f32();
-            if elapsed_time < 5.0 {
+            if text.remaining_time > 0.0 {
                 true
             } else {
                 if let Some(occupied) = self.top_center_row_occupied.get_mut(text.row) {
@@ -239,9 +255,12 @@ impl<'a> RendererInner<'a> {
             }
         });
 
+        for text in self.bottom_center_danmaku.iter_mut() {
+            text.remaining_time -= delta_time;
+        }
+
         self.bottom_center_danmaku.retain(|text| {
-            let elapsed_time = text.start_time.elapsed().as_secs_f32();
-            if elapsed_time < 5.0 {
+            if text.remaining_time > 0.0 {
                 true
             } else {
                 if let Some(occupied) = self.bottom_center_row_occupied.get_mut(text.row) {
@@ -312,6 +331,8 @@ impl<'a> RendererInner<'a> {
             .chain(top_center_areas)
             .chain(bottom_center_areas);
 
+        println!("Before Prepare Time: {:?}", instant.elapsed());
+
         self.text_renderer
             .prepare(
                 device,
@@ -323,6 +344,8 @@ impl<'a> RendererInner<'a> {
                 &mut self.swash_cache,
             )
             .unwrap();
+
+        println!("After Prepare Time: {:?}", instant.elapsed());
 
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("Render Encoder"),

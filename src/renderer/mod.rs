@@ -4,9 +4,9 @@ use wgpu::TextureFormat;
 
 use crate::Danmaku;
 
-pub struct Renderer<'a>(pub RendererInner<'a>);
+pub struct Renderer(pub RendererInner);
 
-impl<'a> Renderer<'a> {
+impl Renderer {
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -20,12 +20,23 @@ impl<'a> Renderer<'a> {
         self.0.resize(queue, width, height);
     }
 
+    // Hard set the video time, Danmaku not presented will be removed
+    pub fn set_video_time(&mut self, time: f64) {
+        self.0.video_time = time;
+
+        self.0.danmaku_queue.pop_to_time(time);
+    }
+
+    pub fn init(&mut self, danmaku: Vec<Danmaku>) {
+        self.0.danmaku_queue.init(danmaku, 0.0);
+    }
+
     pub fn update(&mut self) {
         self.0.update();
     }
 
-    pub fn add_text(&mut self, width: u32, height: u32, danmaku: Danmaku<'a>) {
-        self.0.add_text(width, height, danmaku);
+    pub fn add_text(&mut self, danmaku: Danmaku) {
+        self.0.add_text(danmaku);
     }
 
     pub fn render(
