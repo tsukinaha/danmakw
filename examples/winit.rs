@@ -34,7 +34,11 @@ impl WindowState {
         let physical_size = window.inner_size();
         let scale_factor = window.scale_factor();
 
-        let instance = Instance::new(&InstanceDescriptor::default());
+        let instance = Instance::new(&InstanceDescriptor {
+            backends: wgpu::Backends::PRIMARY,
+            backend_options: wgpu::BackendOptions::from_env_or_default(),
+            flags: wgpu::InstanceFlags::default(),
+        });
 
         let surface = instance.create_surface(window.clone()).unwrap();
         let adapter = instance
@@ -65,7 +69,7 @@ impl WindowState {
             width: physical_size.width,
             height: physical_size.height,
             present_mode: PresentMode::Mailbox,
-            alpha_mode: CompositeAlphaMode::PreMultiplied,
+            alpha_mode: CompositeAlphaMode::Opaque,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
@@ -101,7 +105,7 @@ impl winit::application::ApplicationHandler for Application {
         let (width, height) = (800, 600);
         let window_attributes = Window::default_attributes()
             .with_inner_size(LogicalSize::new(width as f64, height as f64))
-            .with_title("Danmakw Renderer");
+            .with_title("Danmakw Renderer (Demo - By Inaha)");
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
         self.window_state = Some(pollster::block_on(WindowState::new(window)));

@@ -63,8 +63,8 @@ pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError>
 
                 let mode = match mode_val {
                     1 => DanmakuMode::Scroll,
-                    4 => DanmakuMode::TopCenter,
-                    5 => DanmakuMode::BottomCenter,
+                    4 => DanmakuMode::BottomCenter,
+                    5 => DanmakuMode::TopCenter,
                     _ => {
                         eprintln!("Unknown danmaku mode {}, defaulting to Scroll", mode_val);
                         DanmakuMode::Scroll

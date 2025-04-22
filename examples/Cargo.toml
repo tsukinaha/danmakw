@@ -1,7 +1,7 @@
 [package]
 name = "danmakw-example-01-winit"
 edition = "2024"
-rust-version = "1.84"
+rust-version = "1.85"
 
 [dependencies]
 danmakw = { path = ".." }

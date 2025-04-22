@@ -58,7 +58,6 @@ impl Renderer {
         self.0.scroll_danmaku.clear();
         self.0.top_center_danmaku.clear();
         self.0.bottom_center_danmaku.clear();
-        self.0.scroll_row_entry_occupied.fill(false);
         self.0.top_center_row_occupied.fill(false);
         self.0.bottom_center_row_occupied.fill(false);
     }

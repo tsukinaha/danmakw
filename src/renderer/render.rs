@@ -22,7 +22,6 @@ pub struct RendererInner {
 
     pub scroll_danmaku: Vec<ScrollingDanmaku>,
     pub scroll_max_rows: usize,
-    pub scroll_row_entry_occupied: Vec<bool>,
 
     pub top_center_danmaku: Vec<CenterDanmaku>,
     pub top_center_max_rows: usize,
@@ -35,10 +34,13 @@ pub struct RendererInner {
     pub line_height: f32,
     pub top_padding: f32,
     pub font_size: f32,
+    spacing: f32,
     last_update: std::time::Instant,
     pub scale_factor: f64,
     pub speed_factor: f64,
 }
+
+const SCROLL_DURATION_MS: f32 = 8000.0;
 
 impl RendererInner {
     pub fn add_scroll_danmaku(
@@ -48,22 +50,44 @@ impl RendererInner {
         text_width: f32,
         danmaku: Danmaku,
     ) {
-        let Some(target_row) = self
-            .scroll_row_entry_occupied
-            .iter()
-            .position(|&occupied| !occupied)
-        else {
+        let velocity_x = -(width + text_width) / SCROLL_DURATION_MS  * self.speed_factor as f32;
+        
+        let v= velocity_x.abs();
+
+        let mut found_row: Option<usize> = None;
+
+        let reach_edge_time = width / v;
+
+        for target_row in 0..self.scroll_max_rows {
+            let last_in_row = self
+                .scroll_danmaku
+                .iter()
+                .filter(|d| d.row == target_row)
+                .max_by(|a, b| a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal));
+
+            let Some(last_in_row) = last_in_row else {
+                found_row = Some(target_row);
+                break;
+            };
+
+            let leave_time = (last_in_row.x + last_in_row.width + self.spacing) / last_in_row.velocity_x.abs();
+
+            if leave_time < reach_edge_time && width > last_in_row.width + self.spacing + last_in_row.x {
+                found_row = Some(target_row);
+                break;
+            }
+        }
+
+        let Some(target_row) = found_row else {
             return;
         };
-
-        self.scroll_row_entry_occupied[target_row] = true;
 
         self.scroll_danmaku.push(ScrollingDanmaku {
             danmaku,
             buffer: text_buffer,
             x: width,
             row: target_row,
-            velocity_x: -0.2,
+            velocity_x,
             width: text_width,
         });
     }
@@ -143,8 +167,8 @@ impl RendererInner {
         let top_padding = 10.0 * scale_factor as f32;
         let font_size = 24.0 * scale_factor as f32;
         let speed_factor = 1.0;
+        let spacing = 20.0 * scale_factor as f32;
 
-        let scroll_row_entry_occupied = vec![false; scroll_max_rows];
         let top_center_row_occupied = vec![false; top_center_max_rows];
         let bottom_center_row_occupied = vec![false; bottom_center_max_rows];
 
@@ -168,10 +192,10 @@ impl RendererInner {
             last_update: std::time::Instant::now(),
             scale_factor,
             speed_factor,
-            scroll_row_entry_occupied,
             top_center_row_occupied,
             bottom_center_row_occupied,
             paused: false,
+            spacing,
         }
     }
 
@@ -225,17 +249,8 @@ impl RendererInner {
         self.last_update = now;
         self.video_time += delta_time as f64;
 
-        for occupied in self.scroll_row_entry_occupied.iter_mut() {
-            *occupied = false;
-        }
-
         for text in self.scroll_danmaku.iter_mut() {
             text.x += text.velocity_x * delta_time * self.speed_factor as f32;
-            if text.x + text.width > self.viewport.resolution().width as f32 - 5.0 {
-                if let Some(occupied) = self.scroll_row_entry_occupied.get_mut(text.row) {
-                    *occupied = true;
-                }
-            }
         }
 
         self.scroll_danmaku.retain(|text| text.x + text.width > 0.0);
@@ -285,6 +300,7 @@ impl RendererInner {
         width: u32,
         height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
+        let instant = std::time::Instant::now();
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
             let Color { r, g, b, a } = text.danmaku.color;
@@ -367,6 +383,8 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
         self.atlas.trim();
+
+        dbg!("Frame Time: {:?}", instant.elapsed());
 
         Ok(())
     }
