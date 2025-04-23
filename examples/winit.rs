@@ -75,10 +75,10 @@ impl WindowState {
             format: surface_format,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: PresentMode::Mailbox,
+            present_mode: PresentMode::AutoVsync,
             alpha_mode: CompositeAlphaMode::Opaque,
             view_formats: vec![],
-            desired_maximum_frame_latency: 2,
+            desired_maximum_frame_latency: 3,
         };
         surface.configure(&device, &surface_config);
 
@@ -155,6 +155,7 @@ impl winit::application::ApplicationHandler for Application {
                 }
             }
             WindowEvent::RedrawRequested => {
+                let instant = std::time::Instant::now();
                 renderer.update();
 
                 match surface.get_current_texture() {
@@ -194,6 +195,8 @@ impl winit::application::ApplicationHandler for Application {
                     Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
                     Err(e) => eprintln!("Error acquiring frame: {:?}", e),
                 }
+                
+                dbg!("Frame time: {:?}", instant.elapsed());
             }
             WindowEvent::CloseRequested => event_loop.exit(),
             _ => {}

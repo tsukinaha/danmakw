@@ -253,7 +253,6 @@ impl RendererInner {
         }
 
         for next_danmaku in self.danmaku_queue.pop_to_time(self.video_time) {
-            dbg!(&next_danmaku);
             self.add_text(next_danmaku);
         }
 
@@ -273,13 +272,13 @@ impl RendererInner {
         }
 
         self.top_center_danmaku.retain(|text| {
-            if text.remaining_time > 0.0 {
-                true
-            } else {
+            if text.remaining_time <= 0.0 {
                 if let Some(occupied) = self.top_center_row_occupied.get_mut(text.row) {
                     *occupied = false;
                 }
                 false
+            } else {
+                true
             }
         });
 
@@ -288,17 +287,15 @@ impl RendererInner {
         }
 
         self.bottom_center_danmaku.retain(|text| {
-            if text.remaining_time > 0.0 {
-                true
-            } else {
+            if text.remaining_time <= 0.0 {
                 if let Some(occupied) = self.bottom_center_row_occupied.get_mut(text.row) {
                     *occupied = false;
                 }
                 false
+            } else {
+                true
             }
         });
-
-        self.scroll_danmaku.retain(|text| text.x + text.width > 0.0);
     }
 
     pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
@@ -309,7 +306,6 @@ impl RendererInner {
         &mut self, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView,
         width: u32, height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
-        let instant = std::time::Instant::now();
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
             let Color { r, g, b, a } = text.danmaku.color;
@@ -392,8 +388,6 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
         self.atlas.trim();
-
-        dbg!(instant.elapsed());
 
         Ok(())
     }

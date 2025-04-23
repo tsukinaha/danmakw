@@ -1,7 +1,15 @@
 [package]
-name = "danmakw-example-01-winit"
+name = "danmakw-example"
 edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-danmakw = { path = ".." }
+danmakw.workspace = true
+
+[[bin]]
+name = "danmakw-example-01-winit"
+path = "winit.rs"
+
+[[bin]]
+name = "danmakw-example-02-gtk4"
+path = "gtk4/main.rs"
