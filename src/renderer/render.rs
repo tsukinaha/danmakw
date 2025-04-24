@@ -33,6 +33,8 @@ use wgpu::{
     TextureFormat,
 };
 
+use super::export_texture::ExportTexture;
+
 pub struct RendererInner {
     pub danmaku_queue: DanmakuQueue,
     pub video_time: f64,
@@ -63,6 +65,11 @@ pub struct RendererInner {
     last_update: std::time::Instant,
     pub scale_factor: f64,
     pub speed_factor: f64,
+
+    // for rendering to vk fd
+    intermediate_texture: Option<wgpu::Texture>,
+    intermediate_texture_view: Option<wgpu::TextureView>,
+    texture_format: TextureFormat,
 }
 
 const SCROLL_DURATION_MS: f32 = 8000.0;
@@ -209,6 +216,9 @@ impl RendererInner {
             bottom_center_row_occupied,
             paused: false,
             spacing,
+            intermediate_texture: None,
+            intermediate_texture_view: None,
+            texture_format: format,
         }
     }
 
@@ -390,5 +400,146 @@ impl RendererInner {
         self.atlas.trim();
 
         Ok(())
+    }
+}
+
+impl RendererInner {
+    fn ensure_intermediate_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        let size_matches = self
+            .intermediate_texture
+            .as_ref()
+            .map_or(false, |tex| tex.width() == width && tex.height() == height);
+
+        if self.intermediate_texture.is_none() || !size_matches {
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Danmaku Intermediate Texture"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.texture_format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                view_formats: &[],
+            });
+            self.intermediate_texture_view = Some(texture.create_view(&Default::default()));
+            self.intermediate_texture = Some(texture);
+        }
+    }
+
+    pub fn render_to_export_texture(
+        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue, width: u32, height: u32,
+    ) -> Result<ExportTexture, wgpu::SurfaceError> {
+        self.ensure_intermediate_texture(device, width, height);
+
+        let intermediate_texture = self.intermediate_texture.as_ref().unwrap();
+        let intermediate_texture_view = self.intermediate_texture_view.as_ref().unwrap();
+
+        let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
+            let top_y = self.top_padding + (text.row as f32 * self.line_height);
+            let Color { r, g, b, a } = text.danmaku.color;
+            TextArea {
+                buffer: &mut text.buffer,
+                left: text.x,
+                top: top_y,
+                scale: 1.0,
+                bounds: TextBounds::default(),
+                default_color: glyphon::Color::rgba(r, g, b, a),
+                custom_glyphs: &[],
+            }
+        });
+
+        let top_center_areas = self.top_center_danmaku.iter_mut().map(|text| {
+            let Color { r, g, b, a } = text.danmaku.color;
+            TextArea {
+                buffer: &mut text.buffer,
+                left: (width as f32 - text.width) / 2.0,
+                top: self.top_padding + (text.row as f32 * self.line_height),
+                scale: 1.0,
+                bounds: TextBounds::default(),
+                default_color: glyphon::Color::rgba(r, g, b, a),
+                custom_glyphs: &[],
+            }
+        });
+
+        let bottom_center_areas = self.bottom_center_danmaku.iter_mut().map(|text| {
+            let Color { r, g, b, a } = text.danmaku.color;
+            TextArea {
+                buffer: &mut text.buffer,
+                left: (width as f32 - text.width) / 2.0,
+                top: height as f32 - self.top_padding - ((text.row + 1) as f32 * self.line_height),
+                scale: 1.0,
+                bounds: TextBounds::default(),
+                default_color: glyphon::Color::rgba(r, g, b, a),
+                custom_glyphs: &[],
+            }
+        });
+
+        let areas = scroll_areas
+            .chain(top_center_areas)
+            .chain(bottom_center_areas);
+
+        self.text_renderer
+            .prepare(
+                device,
+                queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                &self.viewport,
+                areas,
+                &mut self.swash_cache,
+            )
+            .unwrap();
+
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("Danmaku Render Encoder"),
+        });
+
+        {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Danmaku Render Pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: intermediate_texture_view,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+            self.text_renderer
+                .render(&self.atlas, &self.viewport, &mut pass).unwrap();
+        }
+
+        let export_texture = ExportTexture::new(device, instance, wgpu::Extent3d { width, height, depth_or_array_layers: 1 });
+
+        encoder.copy_texture_to_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: intermediate_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyTextureInfo {
+                texture: &export_texture.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+        );
+
+        queue.submit(Some(encoder.finish()));
+
+        self.atlas.trim();
+
+        Ok(export_texture)
     }
 }

@@ -1,9 +1,11 @@
+// Copy from https://github.com/rntrtul/moviola/src/renderer/export_buffer.rs
+
 use ash::vk;
 use std::os::fd::RawFd;
 use wgpu::hal;
 
 #[derive(Debug)]
-pub(crate) struct ExportTexture {
+pub struct ExportTexture {
     _raw_texture: vk::Image,
     device_memory: vk::DeviceMemory,
     pub texture: wgpu::Texture,

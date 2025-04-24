@@ -1,3 +1,6 @@
 mod app;
 mod dmabuf_texture;
-mod export;
+mod renderer;
+mod channel;
+
+pub use app::new_app;

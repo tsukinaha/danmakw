@@ -12,4 +12,4 @@ path = "winit.rs"
 
 [[bin]]
 name = "danmakw-example-02-gtk4"
-path = "gtk4/main.rs"
+path = "gtk4.rs"

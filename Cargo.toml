@@ -15,9 +15,11 @@ rand = "0.9"
 glyphon = { git = "https://github.com/tsukinaha/glyphon.git" }
 quick-xml = { version = "0.37.4", features = ["serialize"] }
 thiserror = "2.0"
+ash = "0.38"
 
 [dev-dependencies]
 gtk = { version = "0.9", package = "gtk4", features = ["v4_18"] }
 gdk = { version = "0.9", package = "gdk4", features = ["v4_18"] }
 adw = { version = "0.7", package = "libadwaita", features = ["v1_7"] }
-ash = "0.38"
+flume = "0.11"
+once_cell = "1.21"
