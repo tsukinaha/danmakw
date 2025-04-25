@@ -65,11 +65,6 @@ pub struct RendererInner {
     last_update: std::time::Instant,
     pub scale_factor: f64,
     pub speed_factor: f64,
-
-    // for rendering to vk fd
-    intermediate_texture: Option<wgpu::Texture>,
-    intermediate_texture_view: Option<wgpu::TextureView>,
-    texture_format: TextureFormat,
 }
 
 const SCROLL_DURATION_MS: f32 = 8000.0;
@@ -216,9 +211,6 @@ impl RendererInner {
             bottom_center_row_occupied,
             paused: false,
             spacing,
-            intermediate_texture: None,
-            intermediate_texture_view: None,
-            texture_format: format,
         }
     }
 
@@ -236,8 +228,6 @@ impl RendererInner {
             &text_attrs,
             Shaping::Advanced,
         );
-
-        dbg!(&danmaku.content);
 
         let text_width = text_buffer
             .layout_runs()
@@ -406,39 +396,13 @@ impl RendererInner {
 }
 
 impl RendererInner {
-    fn ensure_intermediate_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        let size_matches = self
-            .intermediate_texture
-            .as_ref()
-            .map_or(false, |tex| tex.width() == width && tex.height() == height);
-
-        if self.intermediate_texture.is_none() || !size_matches {
-            let texture = device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("Danmaku Intermediate Texture"),
-                size: wgpu::Extent3d {
-                    width,
-                    height,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: self.texture_format,
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
-                view_formats: &[],
-            });
-            self.intermediate_texture_view = Some(texture.create_view(&Default::default()));
-            self.intermediate_texture = Some(texture);
-        }
-    }
-
     pub fn render_to_export_texture(
         &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue, width: u32, height: u32,
     ) -> Result<ExportTexture, wgpu::SurfaceError> {
-        self.ensure_intermediate_texture(device, width, height);
 
-        let intermediate_texture = self.intermediate_texture.as_ref().unwrap();
-        let intermediate_texture_view = self.intermediate_texture_view.as_ref().unwrap();
+        let export_texture = ExportTexture::new(device, instance, wgpu::Extent3d { width, height, depth_or_array_layers: 1 });
+        
+        let export_texture_view = export_texture.texture.create_view(&Default::default());
 
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
@@ -506,10 +470,10 @@ impl RendererInner {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("Danmaku Render Pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
-                    view: intermediate_texture_view,
+                    view: &export_texture_view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Clear(wgpu::Color::BLACK),
+                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -521,24 +485,6 @@ impl RendererInner {
             self.text_renderer
                 .render(&self.atlas, &self.viewport, &mut pass).unwrap();
         }
-
-        let export_texture = ExportTexture::new(device, instance, wgpu::Extent3d { width, height, depth_or_array_layers: 1 });
-
-        encoder.copy_texture_to_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: intermediate_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::TexelCopyTextureInfo {
-                texture: &export_texture.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            export_texture.texture.size(),
-        );
 
         queue.submit(Some(encoder.finish()));
 

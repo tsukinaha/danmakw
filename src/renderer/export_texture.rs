@@ -40,7 +40,10 @@ impl ExportTexture {
                         let fd_device =
                             ash::khr::external_memory_fd::Device::new(raw_instance, &ash_device);
                         // get_memory_fd is slow. ~2ms avg
+
+                        let instant = std::time::Instant::now();
                         let raw_fd = fd_device.get_memory_fd(&handle_info).unwrap();
+                        dbg!(instant.elapsed());
 
                         fd = Some(raw_fd as RawFd);
                     }
@@ -99,7 +102,7 @@ fn create_image(device: &wgpu::Device, size: wgpu::Extent3d) -> (vk::Image, vk::
         .array_layers(1)
         .samples(vk::SampleCountFlags::TYPE_1)
         .tiling(vk::ImageTiling::DRM_FORMAT_MODIFIER_EXT)
-        .usage(vk::ImageUsageFlags::TRANSFER_DST)
+        .usage(vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::COLOR_ATTACHMENT)
         .sharing_mode(vk::SharingMode::EXCLUSIVE)
         .push_next(&mut external_image_info)
         .push_next(&mut drm_form);
@@ -168,7 +171,7 @@ fn upgrade_raw_image_to_wgpu(
                 dimension: wgpu::TextureDimension::D2,
                 format,
                 view_formats: vec![],
-                usage: wgpu::TextureUses::COPY_DST,
+                usage: wgpu::TextureUses::COPY_DST | wgpu::TextureUses::COLOR_TARGET,
                 memory_flags: wgpu::hal::MemoryFlags::empty(),
             },
             None,
@@ -186,7 +189,7 @@ fn upgrade_raw_image_to_wgpu(
                 dimension: wgpu::TextureDimension::D2,
                 format,
                 view_formats: &[],
-                usage: wgpu::TextureUsages::COPY_DST,
+                usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
             },
         )
     }
