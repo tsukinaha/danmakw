@@ -30,10 +30,10 @@ use wgpu::{
     Operations,
     RenderPassColorAttachment,
     RenderPassDescriptor,
-    TextureFormat,
+    TextureFormat, TextureView,
 };
 
-use super::export_texture::ExportTexture;
+use super::export_texture::{ExportTexture, ExportTextureBuf};
 
 pub struct RendererInner {
     pub danmaku_queue: DanmakuQueue,
@@ -65,6 +65,9 @@ pub struct RendererInner {
     last_update: std::time::Instant,
     pub scale_factor: f64,
     pub speed_factor: f64,
+
+    pub texture: Option<ExportTexture>,
+    pub texture_view: Option<TextureView>,
 }
 
 const SCROLL_DURATION_MS: f32 = 8000.0;
@@ -211,6 +214,8 @@ impl RendererInner {
             bottom_center_row_occupied,
             paused: false,
             spacing,
+            texture_view: None,
+            texture: None,
         }
     }
 
@@ -398,11 +403,19 @@ impl RendererInner {
 impl RendererInner {
     pub fn render_to_export_texture(
         &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue, width: u32, height: u32,
-    ) -> Result<ExportTexture, wgpu::SurfaceError> {
-
-        let export_texture = ExportTexture::new(device, instance, wgpu::Extent3d { width, height, depth_or_array_layers: 1 });
+    ) -> Result<ExportTextureBuf, wgpu::SurfaceError> {
+        let target_size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
         
-        let export_texture_view = export_texture.texture.create_view(&Default::default());
+        let needs_recreation = match &self.texture {
+            Some(tex) => tex.size != target_size,
+            None => true,
+        };
+
+        if needs_recreation {
+            self.texture = Some(ExportTexture::new(device, instance, target_size));
+            self.texture_view = Some(self.texture.as_ref().unwrap().texture.create_view(&wgpu::TextureViewDescriptor::default()));
+            self.viewport.update(queue, Resolution { width, height });
+        }
 
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
@@ -470,7 +483,7 @@ impl RendererInner {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("Danmaku Render Pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &export_texture_view,
+                    view: &self.texture_view.as_ref().unwrap(),
                     resolve_target: None,
                     ops: Operations {
                         load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
@@ -492,6 +505,12 @@ impl RendererInner {
 
         device.poll(wgpu::MaintainBase::Wait).unwrap();
 
-        Ok(export_texture)
+        let texture_buf = ExportTextureBuf {
+            fd: self.texture.as_ref().unwrap().fd,
+            row_stride: self.texture.as_ref().unwrap().row_stride,
+            size: self.texture.as_ref().unwrap().size,
+        };
+
+        Ok(texture_buf)
     }
 }

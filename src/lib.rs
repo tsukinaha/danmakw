@@ -12,3 +12,4 @@ pub use danmaku::{
 
 pub use renderer::Renderer;
 pub use renderer::ExportTexture;
+pub use renderer::ExportTextureBuf;

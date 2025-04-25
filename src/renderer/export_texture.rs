@@ -4,7 +4,6 @@ use ash::vk;
 use std::os::fd::RawFd;
 use wgpu::hal;
 
-#[derive(Debug)]
 pub struct ExportTexture {
     _raw_texture: vk::Image,
     device_memory: vk::DeviceMemory,
@@ -12,6 +11,12 @@ pub struct ExportTexture {
     pub fd: RawFd,
     device: wgpu::Device,
     pub alignment: vk::DeviceSize,
+    pub row_stride: u32,
+    pub size: wgpu::Extent3d,
+}
+
+pub struct ExportTextureBuf {
+    pub fd: RawFd,
     pub row_stride: u32,
     pub size: wgpu::Extent3d,
 }
@@ -41,9 +46,7 @@ impl ExportTexture {
                             ash::khr::external_memory_fd::Device::new(raw_instance, &ash_device);
                         // get_memory_fd is slow. ~2ms avg
 
-                        let instant = std::time::Instant::now();
                         let raw_fd = fd_device.get_memory_fd(&handle_info).unwrap();
-                        dbg!(instant.elapsed());
 
                         fd = Some(raw_fd as RawFd);
                     }
