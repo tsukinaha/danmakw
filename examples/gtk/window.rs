@@ -3,7 +3,6 @@ use adw::{
     subclass::prelude::*,
 };
 use gtk::{
-    Adjustment,
     glib,
     template_callbacks,
 };
@@ -15,21 +14,13 @@ use super::{
 
 mod imp {
 
-    use std::{cell::RefCell, sync::{
-        atomic::AtomicBool, Arc
-    }};
+    
 
-    use glib::{
-        WeakRef,
-        subclass::InitializingObject,
-    };
-    use gtk::CompositeTemplate;
-    use quick_xml::se;
+    
+    
+    
 
-    use crate::gtk::{
-        channel::RECEIVE_FRAME_CHANNEL,
-        dmabuf_texture::TextureBuilder, DanmakuArea,
-    };
+    use crate::gtk::DanmakuArea;
 
     use super::*;
 

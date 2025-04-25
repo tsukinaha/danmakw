@@ -483,7 +483,7 @@ impl RendererInner {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("Danmaku Render Pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &self.texture_view.as_ref().unwrap(),
+                    view: self.texture_view.as_ref().unwrap(),
                     resolve_target: None,
                     ops: Operations {
                         load: LoadOp::Clear(wgpu::Color::TRANSPARENT),

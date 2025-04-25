@@ -8,15 +8,13 @@ pub mod imp {
     use std::cell::RefCell;
 
     use adw::subclass::prelude::*;
-    use glib::subclass::InitializingObject;
+    
     use gtk::{
-        CompositeTemplate,
         gdk,
         glib,
-        graphene,
         prelude::*,
     };
-    use once_cell::sync::Lazy;
+    
 
     use crate::gtk::{channel::{RECEIVE_FRAME_CHANNEL, REQUEST_FRAME_CHANNEL}, dmabuf_texture::TextureBuilder};
 

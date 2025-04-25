@@ -23,9 +23,9 @@ pub struct ExportTextureBuf {
 
 impl ExportTexture {
     pub fn new(device: &wgpu::Device, instance: &wgpu::Instance, size: wgpu::Extent3d) -> Self {
-        let (raw_texture, device_memory) = create_image(&device, size);
+        let (raw_texture, device_memory) = create_image(device, size);
         let alignment = image_alignment(&raw_texture, device);
-        let texture = upgrade_raw_image_to_wgpu(raw_texture, size, &device);
+        let texture = upgrade_raw_image_to_wgpu(raw_texture, size, device);
 
         let mut fd = None;
         unsafe {
@@ -39,7 +39,7 @@ impl ExportTexture {
                             .memory(device_memory);
 
                         let ash_device = ash::Device::load(
-                            &raw_instance.fp_v1_0(),
+                            raw_instance.fp_v1_0(),
                             device.raw_device().handle(),
                         );
                         let fd_device =
