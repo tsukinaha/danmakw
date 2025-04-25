@@ -12,6 +12,8 @@ pub struct ExportTexture {
     pub fd: RawFd,
     device: wgpu::Device,
     pub alignment: vk::DeviceSize,
+    pub row_stride: u32,
+    pub size: wgpu::Extent3d,
 }
 
 impl ExportTexture {
@@ -46,6 +48,10 @@ impl ExportTexture {
             })
         };
 
+        let pixels_per_block = alignment / 4;
+        let blocks_needed = (size.width as f32 / pixels_per_block as f32).ceil() as u32;
+        let row_stride = blocks_needed * (pixels_per_block as u32) * 4;
+
         Self {
             _raw_texture: raw_texture,
             device_memory,
@@ -53,6 +59,8 @@ impl ExportTexture {
             device: device.clone(),
             fd: fd.unwrap(),
             alignment,
+            row_stride,
+            size,
         }
     }
 }

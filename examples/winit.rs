@@ -76,7 +76,7 @@ impl WindowState {
             width: physical_size.width,
             height: physical_size.height,
             present_mode: PresentMode::AutoVsync,
-            alpha_mode: CompositeAlphaMode::Opaque,
+            alpha_mode: CompositeAlphaMode::PreMultiplied,
             view_formats: vec![],
             desired_maximum_frame_latency: 3,
         };

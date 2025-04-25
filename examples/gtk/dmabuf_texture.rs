@@ -46,6 +46,11 @@ impl TextureBuilder {
         self
     }
 
+    pub fn display(self, display: &gdk::Display) -> Self {
+        self.inner.set_display(display);
+        self
+    }
+
     pub fn fourcc(self, fourcc: u32) -> Self {
         self.inner.set_fourcc(fourcc);
         self

@@ -1,4 +1,5 @@
 mod gtk;
+mod utils;
 
 use danmakw::Renderer;
 use gdk::gio::prelude::ApplicationExtManual;
@@ -15,12 +16,8 @@ use wgpu::{
     TextureViewDescriptor,
 };
 
-fn main() {
-    let instance = Instance::new(&InstanceDescriptor {
-        backends: wgpu::Backends::VULKAN,
-        backend_options: wgpu::BackendOptions::from_env_or_default(),
-        flags: wgpu::InstanceFlags::default(),
-    });
+pub use utils::parse_bilibili_xml;
 
+fn main() {
     gtk::new_app().run();
 }

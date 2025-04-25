@@ -15,7 +15,8 @@ impl Renderer {
     pub async fn new() -> Self{
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
-            ..Default::default()
+            backend_options: wgpu::BackendOptions::from_env_or_default(),
+            flags: wgpu::InstanceFlags::default(),
         });
 
         let adapter = instance
@@ -37,7 +38,7 @@ impl Renderer {
         let danmaku_renderer = danmakw::Renderer::new(
             &device,
             &queue,
-            wgpu::TextureFormat::Bgra8UnormSrgb,
+            wgpu::TextureFormat::Rgba8Unorm,
             1.0,
         );
 
