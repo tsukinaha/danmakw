@@ -237,6 +237,8 @@ impl RendererInner {
             Shaping::Advanced,
         );
 
+        dbg!(&danmaku.content);
+
         let text_width = text_buffer
             .layout_runs()
             .map(|run| run.line_w)
@@ -482,6 +484,8 @@ impl RendererInner {
             .chain(top_center_areas)
             .chain(bottom_center_areas);
 
+        self.viewport.update(queue, Resolution { width, height });
+
         self.text_renderer
             .prepare(
                 device,
@@ -505,7 +509,7 @@ impl RendererInner {
                     view: intermediate_texture_view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        load: LoadOp::Clear(wgpu::Color::BLACK),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -533,12 +537,14 @@ impl RendererInner {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+            export_texture.texture.size(),
         );
 
         queue.submit(Some(encoder.finish()));
 
         self.atlas.trim();
+
+        device.poll(wgpu::MaintainBase::Wait).unwrap();
 
         Ok(export_texture)
     }

@@ -15,10 +15,9 @@ use super::{
 
 mod imp {
 
-    use std::sync::{
-        Arc,
-        atomic::AtomicBool,
-    };
+    use std::{cell::RefCell, sync::{
+        atomic::AtomicBool, Arc
+    }};
 
     use glib::{
         WeakRef,
@@ -38,6 +37,8 @@ mod imp {
     #[properties(wrapper_type = super::TestWindow)]
     pub struct TestWindow {
         pub picture: gtk::Picture,
+
+        pub texture: RefCell<Option<gdk::Texture>>,
     }
 
     #[glib::object_subclass]
@@ -52,7 +53,16 @@ mod imp {
         fn constructed(&self) {
             self.parent_constructed();
 
-            self.obj().set_content(Some(&self.picture));
+            let toolbar_view = adw::ToolbarView::new();
+                
+            let title_bar = adw::HeaderBar::builder()
+                .title_widget(&gtk::Label::new(Some("WGPU Danmakw Renderer Example")))
+                .build();
+
+            toolbar_view.set_content(Some(&self.picture));
+            toolbar_view.add_top_bar(&title_bar);
+
+            self.obj().set_content(Some(&toolbar_view));
 
             self.obj().start_rendering();
 
@@ -77,9 +87,9 @@ mod imp {
                                 .fd(0, tex_buf.fd)
                                 .fourcc(875709016)
                                 .modifier(0)
-                                .n_planes(1)
                                 .width(tex_buf.size.width)
                                 .height(tex_buf.size.height)
+                                .n_planes(1)
                                 .offset(0, 0)
                                 .stride(0, tex_buf.row_stride)
                                 .build()
