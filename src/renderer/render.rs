@@ -503,8 +503,6 @@ impl RendererInner {
 
         self.atlas.trim();
 
-        device.poll(wgpu::MaintainBase::Wait).unwrap();
-
         let texture_buf = ExportTextureBuf {
             fd: self.texture.as_ref().unwrap().fd,
             row_stride: self.texture.as_ref().unwrap().row_stride,
