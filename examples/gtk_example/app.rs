@@ -1,7 +1,4 @@
-use adw::{
-    prelude::*,
-    subclass::prelude::*,
-};
+use adw::prelude::*;
 
 pub fn new_app() -> adw::Application {
     let app = adw::Application::new(
@@ -10,7 +7,7 @@ pub fn new_app() -> adw::Application {
     );
 
     app.connect_activate(|app| {
-        crate::gtk::TestWindow::new(app).present();
+        crate::gtk_example::TestWindow::new(app).present();
     });
 
     app

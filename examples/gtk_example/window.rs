@@ -14,7 +14,7 @@ use super::{
 
 mod imp {
 
-    use crate::gtk::DanmakuArea;
+    use crate::gtk_example::DanmakuArea;
 
     use super::*;
 

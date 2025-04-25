@@ -5,7 +5,7 @@ use gtk::{
 };
 
 pub mod imp {
-    use std::{cell::RefCell, time::Duration};
+    use std::cell::RefCell;
 
     use adw::subclass::prelude::*;
     
@@ -16,7 +16,7 @@ pub mod imp {
     };
     
 
-    use crate::gtk::{channel::{RECEIVE_FRAME_CHANNEL, REQUEST_FRAME_CHANNEL}, dmabuf_texture::TextureBuilder};
+    use crate::gtk_example::{channel::{RECEIVE_FRAME_CHANNEL, REQUEST_FRAME_CHANNEL}, dmabuf_texture::TextureBuilder};
 
     // Object holding the state
     #[derive(Default)]

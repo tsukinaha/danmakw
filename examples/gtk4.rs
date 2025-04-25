@@ -1,9 +1,9 @@
-mod gtk;
+mod gtk_example;
 mod utils;
 
-use gdk::gio::prelude::ApplicationExtManual;
+use gtk::prelude::*;
 pub use utils::parse_bilibili_xml;
 
 fn main() {
-    gtk::new_app().run();
+    gtk_example::new_app().run();
 }
