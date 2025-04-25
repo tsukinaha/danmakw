@@ -394,7 +394,6 @@ impl RendererInner {
         }
 
         queue.submit(Some(encoder.finish()));
-        self.atlas.trim();
 
         Ok(())
     }
@@ -461,8 +460,6 @@ impl RendererInner {
             .chain(top_center_areas)
             .chain(bottom_center_areas);
 
-        self.viewport.update(queue, Resolution { width, height });
-
         self.text_renderer
             .prepare(
                 device,
@@ -501,7 +498,7 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
 
-        self.atlas.trim();
+        device.poll(wgpu::MaintainBase::Wait).unwrap();
 
         let texture_buf = ExportTextureBuf {
             fd: self.texture.as_ref().unwrap().fd,

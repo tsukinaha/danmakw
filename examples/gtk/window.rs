@@ -14,21 +14,13 @@ use super::{
 
 mod imp {
 
-    
-
-    
-    
-    
-
     use crate::gtk::DanmakuArea;
 
     use super::*;
 
     #[derive(Debug, Default, glib::Properties)]
     #[properties(wrapper_type = super::TestWindow)]
-    pub struct TestWindow {
-        
-    }
+    pub struct TestWindow {}
 
     #[glib::object_subclass]
     impl ObjectSubclass for TestWindow {
@@ -43,7 +35,7 @@ mod imp {
             self.parent_constructed();
 
             let toolbar_view = adw::ToolbarView::new();
-                
+
             let title_bar = adw::HeaderBar::builder()
                 .title_widget(&gtk::Label::new(Some("WGPU Danmakw Renderer Example")))
                 .build();
@@ -59,9 +51,7 @@ mod imp {
         }
     }
 
-    impl WidgetImpl for TestWindow {
-        
-    }
+    impl WidgetImpl for TestWindow {}
 
     impl WindowImpl for TestWindow {}
 
@@ -92,7 +82,9 @@ impl TestWindow {
                 if width == 0 || height == 0 {
                     continue;
                 }
-                renderer.render(width , height).await;
+                let instant = std::time::Instant::now();
+                renderer.render(width, height).await;
+                dbg!(instant.elapsed());
             }
         });
     }

@@ -5,7 +5,7 @@ use gtk::{
 };
 
 pub mod imp {
-    use std::cell::RefCell;
+    use std::{cell::RefCell, time::Duration};
 
     use adw::subclass::prelude::*;
     
@@ -35,7 +35,7 @@ pub mod imp {
         fn constructed(&self) {
             self.parent_constructed();
 
-            self.obj().add_tick_callback(|area, _a| {
+            self.obj().add_tick_callback(move |area, _a| {
                 let width = area.width();
                 let height = area.height();
                 REQUEST_FRAME_CHANNEL
