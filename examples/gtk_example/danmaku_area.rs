@@ -20,6 +20,8 @@ pub mod imp {
         REQUEST_FRAME_CHANNEL,
     };
 
+    const RGBA32: u32 = 875708993;
+
     // Object holding the state
     #[derive(Default)]
     pub struct DanmakuArea {
@@ -56,13 +58,14 @@ pub mod imp {
                             let builder = gdk::DmabufTextureBuilder::new();
                             builder.set_display(&gdk::Display::default().unwrap());
                             builder.set_fd(0, tex_buf.fd);
-                            builder.set_fourcc(875709016);
+                            builder.set_fourcc(RGBA32);
                             builder.set_modifier(0);
                             builder.set_width(tex_buf.size.width);
                             builder.set_height(tex_buf.size.height);
                             builder.set_n_planes(1);
                             builder.set_offset(0, 0);
                             builder.set_stride(0, tex_buf.row_stride);
+                            builder.set_premultiplied(false);
                             imp.texture.replace(Some(builder.build().unwrap()));
                             imp.obj().queue_draw();
                         }

@@ -174,7 +174,7 @@ fn upgrade_raw_image_to_wgpu(
                 dimension: wgpu::TextureDimension::D2,
                 format,
                 view_formats: vec![],
-                usage: wgpu::TextureUses::COPY_DST | wgpu::TextureUses::COLOR_TARGET,
+                usage: wgpu::TextureUses::empty(),
                 memory_flags: wgpu::hal::MemoryFlags::empty(),
             },
             None,
@@ -192,7 +192,7 @@ fn upgrade_raw_image_to_wgpu(
                 dimension: wgpu::TextureDimension::D2,
                 format,
                 view_formats: &[],
-                usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             },
         )
     }

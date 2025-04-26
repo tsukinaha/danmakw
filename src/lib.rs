@@ -10,6 +10,8 @@ pub use danmaku::{
     ScrollingDanmaku,
 };
 
-pub use renderer::Renderer;
-pub use renderer::ExportTexture;
-pub use renderer::ExportTextureBuf;
+pub use renderer::{
+    ExportTexture,
+    ExportTextureBuf,
+    Renderer,
+};
