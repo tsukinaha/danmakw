@@ -21,7 +21,7 @@ impl Renderer {
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
+                power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: None,
                 force_fallback_adapter: false,
             })
@@ -31,8 +31,7 @@ impl Renderer {
         let (device, queue) = create_device_queue(
             &instance,
             &adapter,
-            wgpu::Features::TIMESTAMP_QUERY
-                | wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+            wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
         );
 
         let danmaku_renderer = danmakw::Renderer::new(
@@ -146,7 +145,7 @@ fn create_device_queue(
                 open_device.unwrap(),
                 &wgpu::DeviceDescriptor {
                     required_features,
-                    required_limits: wgpu::Limits::default(),
+                    required_limits: wgpu::Limits::default().using_resolution(adapter.limits()),
                     label: None,
                     memory_hints: wgpu::MemoryHints::Performance,
                     trace: wgpu::Trace::Off,

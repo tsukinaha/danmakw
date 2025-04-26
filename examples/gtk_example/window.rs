@@ -42,7 +42,12 @@ mod imp {
 
             let danmaku_area = DanmakuArea::new();
 
-            toolbar_view.set_content(Some(&danmaku_area));
+            let offload = gtk::GraphicsOffload::new(Some(&danmaku_area));
+            offload.set_enabled(gtk::GraphicsOffloadEnabled::Enabled);
+            offload.set_black_background(false);
+            offload.set_vexpand(true);
+
+            toolbar_view.set_content(Some(&offload));
             toolbar_view.add_top_bar(&title_bar);
 
             self.obj().set_content(Some(&toolbar_view));

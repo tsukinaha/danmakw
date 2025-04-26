@@ -1,5 +1,4 @@
 mod app;
-mod dmabuf_texture;
 mod renderer;
 mod channel;
 mod window;

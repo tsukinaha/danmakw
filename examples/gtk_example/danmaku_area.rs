@@ -8,15 +8,17 @@ pub mod imp {
     use std::cell::RefCell;
 
     use adw::subclass::prelude::*;
-    
+
     use gtk::{
         gdk,
         glib,
         prelude::*,
     };
-    
 
-    use crate::gtk_example::{channel::{RECEIVE_FRAME_CHANNEL, REQUEST_FRAME_CHANNEL}, dmabuf_texture::TextureBuilder};
+    use crate::gtk_example::channel::{
+        RECEIVE_FRAME_CHANNEL,
+        REQUEST_FRAME_CHANNEL,
+    };
 
     // Object holding the state
     #[derive(Default)]
@@ -51,20 +53,17 @@ pub mod imp {
                 async move {
                     while let Ok(tex_buf) = RECEIVE_FRAME_CHANNEL.rx.recv_async().await {
                         unsafe {
-                            let dmabuf_texture = TextureBuilder::new()
-                                .display(&gdk::Display::default().unwrap())
-                                .fd(0, tex_buf.fd)
-                                .fourcc(875709016)
-                                .modifier(0)
-                                .width(tex_buf.size.width)
-                                .height(tex_buf.size.height)
-                                .n_planes(1)
-                                .offset(0, 0)
-                                .stride(0, tex_buf.row_stride)
-                                .build()
-                                .unwrap();
-
-                            imp.texture.replace(Some(dmabuf_texture));
+                            let builder = gdk::DmabufTextureBuilder::new();
+                            builder.set_display(&gdk::Display::default().unwrap());
+                            builder.set_fd(0, tex_buf.fd);
+                            builder.set_fourcc(875709016);
+                            builder.set_modifier(0);
+                            builder.set_width(tex_buf.size.width);
+                            builder.set_height(tex_buf.size.height);
+                            builder.set_n_planes(1);
+                            builder.set_offset(0, 0);
+                            builder.set_stride(0, tex_buf.row_stride);
+                            imp.texture.replace(Some(builder.build().unwrap()));
                             imp.obj().queue_draw();
                         }
                     }
@@ -78,7 +77,11 @@ pub mod imp {
             self.parent_snapshot(snapshot);
 
             if let Some(texture) = self.texture.borrow().as_ref() {
-                texture.snapshot(snapshot, self.obj().width() as f64, self.obj().height() as f64);
+                texture.snapshot(
+                    snapshot,
+                    self.obj().width() as f64,
+                    self.obj().height() as f64,
+                );
             }
         }
     }
