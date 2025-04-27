@@ -71,6 +71,30 @@ impl Renderer {
         RECEIVE_FRAME_CHANNEL.tx
             .send_async(frame).await.unwrap();
     }
+
+    pub fn set_font_size(&mut self, size: u32) {
+        self.danmaku_renderer.set_font_size(size as f32);
+    }
+
+    pub fn set_speed_factor(&mut self, speed_factor: f64) {
+        self.danmaku_renderer.set_speed_factor(speed_factor);
+    }
+
+    pub fn set_row_spacing(&mut self, row_spacing: u32) {
+        self.danmaku_renderer.set_row_spacing(row_spacing as f32);
+    }
+
+    pub fn set_top_padding(&mut self, top_padding: u32) {
+        self.danmaku_renderer.set_top_padding(top_padding as f32);
+    }
+
+    pub fn set_max_rows(&mut self, max_rows: usize) {
+        self.danmaku_renderer.set_max_rows(max_rows);
+    }
+
+    pub fn set_video_time(&mut self, time: f64) {
+        self.danmaku_renderer.set_video_time(time);
+    }
 }
 
 fn create_device_queue(

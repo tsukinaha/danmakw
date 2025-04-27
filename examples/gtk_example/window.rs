@@ -10,6 +10,7 @@ use gtk::{
 use super::{
     channel::REQUEST_FRAME_CHANNEL,
     renderer::Renderer,
+    RendererEvent,
 };
 
 mod imp {
@@ -51,8 +52,6 @@ mod imp {
             toolbar_view.add_top_bar(&title_bar);
 
             self.obj().set_content(Some(&toolbar_view));
-
-            self.obj().start_rendering();
         }
     }
 
@@ -74,23 +73,5 @@ glib::wrapper! {
 impl TestWindow {
     pub fn new(app: &adw::Application) -> Self {
         glib::Object::builder().property("application", app).build()
-    }
-
-    pub fn start_rendering(&self) {
-        glib::spawn_future_local(async {
-            let mut renderer = Renderer::new().await;
-
-            let danmakus = crate::utils::parse_bilibili_xml(include_str!("../test.xml")).unwrap();
-            renderer.init(danmakus);
-
-            while let Ok((width, height)) = REQUEST_FRAME_CHANNEL.rx.recv_async().await {
-                if width == 0 || height == 0 {
-                    continue;
-                }
-                let instant = std::time::Instant::now();
-                renderer.render(width, height).await;
-                dbg!(instant.elapsed());
-            }
-        });
     }
 }

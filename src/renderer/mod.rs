@@ -2,6 +2,7 @@ mod render;
 mod export_texture;
 pub use export_texture::ExportTexture;
 pub use export_texture::ExportTextureBuf;
+use quick_xml::se;
 use render::RendererInner;
 use wgpu::TextureFormat;
 
@@ -72,8 +73,8 @@ impl Renderer {
         self.0.font_size = font_size;
     }
 
-    pub fn set_line_height(&mut self, line_height: f32) {
-        self.0.line_height = line_height;
+    pub fn set_row_spacing(&mut self, row_spacing: f32) {
+        self.0.line_height = self.0.font_size + row_spacing;
     }
 
     pub fn set_top_padding(&mut self, top_padding: f32) {

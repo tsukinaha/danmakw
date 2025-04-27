@@ -404,17 +404,17 @@ impl RendererInner {
         &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue, width: u32, height: u32,
     ) -> Result<ExportTextureBuf, wgpu::SurfaceError> {
         let target_size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
-        
-        let needs_recreation = match &self.texture {
-            Some(tex) => tex.size != target_size,
-            None => true,
-        };
 
-        if needs_recreation {
-            self.texture = Some(ExportTexture::new(device, instance, target_size));
-            self.texture_view = Some(self.texture.as_ref().unwrap().texture.create_view(&wgpu::TextureViewDescriptor::default()));
+        if self.texture.as_ref().map_or(true, |tex| tex.size != target_size) {
+            let new_texture = ExportTexture::new(device, instance, target_size);
+            let new_view = new_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            
+            self.texture = Some(new_texture);
+            self.texture_view = Some(new_view);
             self.viewport.update(queue, Resolution { width, height });
         }
+
+        let texture = self.texture.as_ref().unwrap();
 
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
@@ -499,9 +499,9 @@ impl RendererInner {
         queue.submit(Some(encoder.finish()));
 
         let texture_buf = ExportTextureBuf {
-            fd: self.texture.as_ref().unwrap().fd,
-            row_stride: self.texture.as_ref().unwrap().row_stride,
-            size: self.texture.as_ref().unwrap().size,
+            fd: texture.fd,
+            row_stride: texture.row_stride,
+            size: texture.size,
         };
 
         Ok(texture_buf)
