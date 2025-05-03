@@ -10,6 +10,7 @@ pub use danmaku::{
     ScrollingDanmaku,
 };
 
+
 pub use renderer::{
     ExportTexture,
     ExportTextureBuf,
@@ -20,3 +21,9 @@ pub use renderer::{
 mod gtk_wgpu_gles_framebuffer_example;
 #[cfg(feature = "gtk4-gles")]
 pub use gtk_wgpu_gles_framebuffer_example::DanmakwArea;
+#[cfg(feature = "gtk4-gles")]
+use gdk::glib::types::StaticTypeExt;
+#[cfg(feature = "gtk4-gles")]
+pub fn init() {
+    DanmakwArea::ensure_type();
+}
