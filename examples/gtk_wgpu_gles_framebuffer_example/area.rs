@@ -148,8 +148,6 @@ impl Renderer {
 
         self.resize(width, height);
 
-        println!("Rendering to texture");
-
         self.danmaku_renderer
             .render(&self.device, &self.queue, &self.view, width, height)
             .unwrap();
