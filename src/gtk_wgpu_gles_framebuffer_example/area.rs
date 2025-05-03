@@ -35,7 +35,7 @@ mod imp {
         #[property(get, set = Self::set_font_name)]
         pub font_name: RefCell<String>,
 
-        renderer: RefCell<Option<DanmakwAreaRenderer>>,
+        pub renderer: RefCell<Option<DanmakwAreaRenderer>>,
         render_loop_callback_id: RefCell<Option<TickCallbackId>>,
     }
 
@@ -273,6 +273,12 @@ impl DanmakwArea {
     pub fn stop_rendering(&self) {
         if let Some(id) = self.imp().get_render_loop_callback_id() {
             id.remove();
+        }
+    }
+
+    pub fn set_danmaku(&self, danmaku: Vec<crate::Danmaku>) {
+        if let Some(renderer) = self.imp().renderer.borrow_mut().as_mut() {
+            renderer.danmaku_renderer.init(danmaku);
         }
     }
 }
