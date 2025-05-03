@@ -6,8 +6,6 @@ use gtk::{
 };
 use std::cell::RefCell;
 
-
-
 mod imp {
     use crate::gtk_wgpu_gles_framebuffer_example::DanmakwAreaRenderer;
 
@@ -34,7 +32,7 @@ mod imp {
                 "
                 .danmakw-area {
                     transform: scaleY(-1);
-                }"
+                }",
             );
             gtk::style_context_add_provider_for_display(
                 &gdk::Display::default().expect("Could not connect to a display."),

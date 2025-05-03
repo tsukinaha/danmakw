@@ -1,9 +1,11 @@
 mod gtk_wgpu_gles_framebuffer_example;
 mod utils;
 
-use gtk::prelude::*;
+use gtk::{
+    glib,
+    prelude::*,
+};
 pub use utils::parse_bilibili_xml;
-use gtk::glib;
 
 fn main() -> glib::ExitCode {
     let application =

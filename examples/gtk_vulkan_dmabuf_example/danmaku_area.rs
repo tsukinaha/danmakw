@@ -19,7 +19,6 @@ use super::{
 pub mod imp {
     use std::cell::RefCell;
 
-    
     use gtk::{
         TickCallbackId,
         gdk,
@@ -329,10 +328,12 @@ impl DanmakuArea {
             let height = area.height();
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(crate::gtk_vulkan_dmabuf_example::RendererEvent::RequestFrame(
-                    width as u32,
-                    height as u32,
-                ))
+                .send(
+                    crate::gtk_vulkan_dmabuf_example::RendererEvent::RequestFrame(
+                        width as u32,
+                        height as u32,
+                    ),
+                )
                 .unwrap();
             glib::ControlFlow::Continue
         });
