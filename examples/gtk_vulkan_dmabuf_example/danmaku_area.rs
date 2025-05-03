@@ -19,7 +19,7 @@ use super::{
 pub mod imp {
     use std::cell::RefCell;
 
-    use gdk::glib::GString;
+    
     use gtk::{
         TickCallbackId,
         gdk,

@@ -33,7 +33,6 @@ use wgpu::{
     TextureFormat,
     TextureView,
 };
-use wgpu_types::PollType;
 
 use super::export_texture::{
     ExportTexture,
