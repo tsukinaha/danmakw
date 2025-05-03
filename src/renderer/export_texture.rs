@@ -38,10 +38,8 @@ impl ExportTexture {
                             .handle_type(vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT)
                             .memory(device_memory);
 
-                        let ash_device = ash::Device::load(
-                            raw_instance.fp_v1_0(),
-                            device.raw_device().handle(),
-                        );
+                        let ash_device =
+                            ash::Device::load(raw_instance.fp_v1_0(), device.raw_device().handle());
                         let fd_device =
                             ash::khr::external_memory_fd::Device::new(raw_instance, &ash_device);
                         // get_memory_fd is slow. ~2ms avg
@@ -157,9 +155,7 @@ fn image_alignment(image: &vk::Image, device: &wgpu::Device) -> vk::DeviceSize {
 }
 
 fn upgrade_raw_image_to_wgpu(
-    image: vk::Image,
-    size: wgpu::Extent3d,
-    device: &wgpu::Device,
+    image: vk::Image, size: wgpu::Extent3d, device: &wgpu::Device,
 ) -> wgpu::Texture {
     let format = wgpu::TextureFormat::Rgba8Unorm;
 

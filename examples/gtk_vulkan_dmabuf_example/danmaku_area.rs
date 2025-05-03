@@ -1,30 +1,40 @@
 use glib::Object;
 use gtk::{
-    gdk,
     glib,
     prelude::*,
 };
 
-use adw::prelude::*;
-use adw::subclass::prelude::*;
+use adw::{
+    prelude::*,
+    subclass::prelude::*,
+};
 
-use super::{channel::REQUEST_FRAME_CHANNEL, Properties};
-use super::RendererEvent;
-use super::renderer::Renderer;
+use super::{
+    Properties,
+    RendererEvent,
+    channel::REQUEST_FRAME_CHANNEL,
+    renderer::Renderer,
+};
 
 pub mod imp {
     use std::cell::RefCell;
 
+    use gdk::glib::GString;
     use gtk::{
+        TickCallbackId,
         gdk,
         glib,
-        prelude::*, TickCallbackId,
+        prelude::*,
     };
 
-    use crate::gtk_example::{channel::{
-        RECEIVE_FRAME_CHANNEL,
-        REQUEST_FRAME_CHANNEL,
-    }, Properties, RendererEvent};
+    use crate::gtk_vulkan_dmabuf_example::{
+        Properties,
+        RendererEvent,
+        channel::{
+            RECEIVE_FRAME_CHANNEL,
+            REQUEST_FRAME_CHANNEL,
+        },
+    };
 
     use super::*;
 
@@ -46,11 +56,10 @@ pub mod imp {
         pub top_padding: RefCell<u32>,
         #[property(get, set = Self::set_paused)]
         pub paused: RefCell<bool>,
-        #[property(get, set = Self::set_transparency)]
-        pub transparency: RefCell<f64>,
         #[property(get, set = Self::set_time_milis)]
         pub time_milis: RefCell<f64>,
-
+        #[property(get, set = Self::set_font_name)]
+        pub font_name: RefCell<String>,
 
         texture: RefCell<Option<gdk::Texture>>,
 
@@ -64,9 +73,11 @@ pub mod imp {
         type ParentType = adw::Bin;
     }
 
+    #[glib::derived_properties]
     impl ObjectImpl for DanmakuArea {
         fn constructed(&self) {
             self.parent_constructed();
+            self.set_default_font();
 
             glib::spawn_future_local(glib::clone!(
                 #[weak(rename_to = imp)]
@@ -96,7 +107,9 @@ pub mod imp {
 
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::StartRendering(())))
+                .send(RendererEvent::ChangeProperties(Properties::StartRendering(
+                    (),
+                )))
                 .unwrap();
         }
     }
@@ -118,11 +131,34 @@ pub mod imp {
     impl BinImpl for DanmakuArea {}
 
     impl DanmakuArea {
+        pub fn set_default_font(&self) {
+            let font = self
+                .obj()
+                .pango_context()
+                .font_description()
+                .unwrap()
+                .family()
+                .unwrap();
+            self.obj().set_font_name(font);
+        }
+
+        pub fn set_font_name(&self, font_name: String) {
+            self.font_name.replace(font_name.to_owned());
+            REQUEST_FRAME_CHANNEL
+                .tx
+                .send(RendererEvent::ChangeProperties(Properties::SetFontName(
+                    font_name,
+                )))
+                .unwrap();
+        }
+
         pub fn set_font_size(&self, font_size: u32) {
             self.font_size.replace(font_size);
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::SetFontSize(font_size)))
+                .send(RendererEvent::ChangeProperties(Properties::SetFontSize(
+                    font_size,
+                )))
                 .unwrap();
         }
 
@@ -130,7 +166,9 @@ pub mod imp {
             self.speed_factor.replace(speed_factor);
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::SetSpeedFactor(speed_factor)))
+                .send(RendererEvent::ChangeProperties(Properties::SetSpeedFactor(
+                    speed_factor,
+                )))
                 .unwrap();
         }
 
@@ -138,7 +176,9 @@ pub mod imp {
             self.row_spacing.replace(row_spacing);
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::SetRowSpacing(row_spacing)))
+                .send(RendererEvent::ChangeProperties(Properties::SetRowSpacing(
+                    row_spacing,
+                )))
                 .unwrap();
         }
 
@@ -146,7 +186,9 @@ pub mod imp {
             self.top_padding.replace(top_padding);
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::SetTopPadding(top_padding)))
+                .send(RendererEvent::ChangeProperties(Properties::SetTopPadding(
+                    top_padding,
+                )))
                 .unwrap();
         }
 
@@ -154,7 +196,9 @@ pub mod imp {
             self.max_rows.replace(max_rows);
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::SetMaxRows(max_rows as usize)))
+                .send(RendererEvent::ChangeProperties(Properties::SetMaxRows(
+                    max_rows as usize,
+                )))
                 .unwrap();
         }
 
@@ -163,20 +207,19 @@ pub mod imp {
             if paused {
                 REQUEST_FRAME_CHANNEL
                     .tx
-                    .send(RendererEvent::ChangeProperties(Properties::PauseRendering(())))
+                    .send(RendererEvent::ChangeProperties(Properties::PauseRendering(
+                        (),
+                    )))
                     .unwrap();
             } else {
                 REQUEST_FRAME_CHANNEL
                     .tx
-                    .send(RendererEvent::ChangeProperties(Properties::StartRendering(())))
+                    .send(RendererEvent::ChangeProperties(Properties::StartRendering(
+                        (),
+                    )))
                     .unwrap();
             }
         }
-
-        pub fn set_transparency(&self, transparency: f64) {
-            self.obj().set_opacity(transparency);
-        }
-
 
         // This method will discard the danmakus between the last value and the current value
         // You should not bind this property to video time
@@ -184,7 +227,9 @@ pub mod imp {
             self.time_milis.replace(time_milis);
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(RendererEvent::ChangeProperties(Properties::SetTimeMilis(time_milis)))
+                .send(RendererEvent::ChangeProperties(Properties::SetTimeMilis(
+                    time_milis,
+                )))
                 .unwrap();
         }
 
@@ -219,23 +264,25 @@ impl DanmakuArea {
             #[weak(rename_to = obj)]
             self,
             async move {
-            let mut renderer = Renderer::new().await;
+                let mut renderer = Renderer::new().await;
 
-            let danmakus = crate::utils::parse_bilibili_xml(include_str!("../test.xml")).unwrap();
-            renderer.init(danmakus);
+                let danmakus =
+                    crate::utils::parse_bilibili_xml(include_str!("../test.xml")).unwrap();
+                renderer.init(danmakus);
 
-            while let Ok(event) = REQUEST_FRAME_CHANNEL.rx.recv_async().await {
-                match event {
-                    RendererEvent::RequestFrame(width, height) => {
-                        if width == 0 || height == 0 {
-                            continue;
+                renderer.set_font_name(obj.font_name());
+
+                while let Ok(event) = REQUEST_FRAME_CHANNEL.rx.recv_async().await {
+                    match event {
+                        RendererEvent::RequestFrame(width, height) => {
+                            if width == 0 || height == 0 {
+                                continue;
+                            }
+                            let instant = std::time::Instant::now();
+                            renderer.render(width, height).await;
+                            dbg!(instant.elapsed());
                         }
-                        let instant = std::time::Instant::now();
-                        renderer.render(width, height).await;
-                        dbg!(instant.elapsed());
-                    }
-                    RendererEvent::ChangeProperties(p) => {
-                        match p {
+                        RendererEvent::ChangeProperties(p) => match p {
                             Properties::SetFontSize(size) => {
                                 renderer.set_font_size(size);
                             }
@@ -249,7 +296,7 @@ impl DanmakuArea {
                                 renderer.set_top_padding(top_padding);
                             }
                             Properties::SetMaxRows(max_rows) => {
-                                renderer.set_max_rows(max_rows as usize);
+                                renderer.set_max_rows(max_rows);
                             }
                             Properties::PauseRendering(()) => {
                                 obj.stop_rendering();
@@ -263,11 +310,17 @@ impl DanmakuArea {
                             Properties::SetTimeMilis(time) => {
                                 renderer.set_video_time(time);
                             }
-                        }
+                            Properties::SetFontName(font_name) => {
+                                renderer.set_font_name(font_name);
+                            }
+                            Properties::SetVideoSpeed(speed) => {
+                                renderer.set_video_speed(speed);
+                            }
+                        },
                     }
                 }
             }
-        }));
+        ));
     }
 
     fn start_rendering(&self) {
@@ -276,7 +329,10 @@ impl DanmakuArea {
             let height = area.height();
             REQUEST_FRAME_CHANNEL
                 .tx
-                .send(crate::gtk_example::RendererEvent::RequestFrame(width as u32, height as u32))
+                .send(crate::gtk_vulkan_dmabuf_example::RendererEvent::RequestFrame(
+                    width as u32,
+                    height as u32,
+                ))
                 .unwrap();
             glib::ControlFlow::Continue
         });

@@ -1,8 +1,9 @@
-mod render;
 mod export_texture;
-pub use export_texture::ExportTexture;
-pub use export_texture::ExportTextureBuf;
-use quick_xml::se;
+mod render;
+pub use export_texture::{
+    ExportTexture,
+    ExportTextureBuf,
+};
 use render::RendererInner;
 use wgpu::TextureFormat;
 
@@ -40,6 +41,14 @@ impl Renderer {
         self.0.add_text(danmaku);
     }
 
+    pub fn set_font_name(&mut self, font_name: String) {
+        self.0.font_name = font_name;
+    }
+
+    pub fn set_video_speed(&mut self, speed: f64) {
+        self.0.video_speed = speed;
+    }
+
     pub fn render(
         &mut self, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView,
         width: u32, height: u32,
@@ -48,9 +57,11 @@ impl Renderer {
     }
 
     pub fn render_to_export_texture(
-        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue, width: u32, height: u32,
+        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue,
+        width: u32, height: u32,
     ) -> Result<ExportTextureBuf, wgpu::SurfaceError> {
-        self.0.render_to_export_texture(device, instance, queue, width, height)
+        self.0
+            .render_to_export_texture(device, instance, queue, width, height)
     }
 
     pub fn set_paused(&mut self, paused: bool) {

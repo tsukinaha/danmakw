@@ -1,9 +1,9 @@
-mod gtk_example;
+mod gtk_vulkan_dmabuf_example;
 mod utils;
 
 use gtk::prelude::*;
 pub use utils::parse_bilibili_xml;
 
 fn main() {
-    gtk_example::new_app().run();
+    gtk_vulkan_dmabuf_example::new_app().run();
 }

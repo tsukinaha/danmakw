@@ -7,15 +7,9 @@ use gtk::{
     template_callbacks,
 };
 
-use super::{
-    channel::REQUEST_FRAME_CHANNEL,
-    renderer::Renderer,
-    RendererEvent,
-};
-
 mod imp {
 
-    use crate::gtk_example::DanmakuArea;
+    use crate::gtk_vulkan_dmabuf_example::DanmakuArea;
 
     use super::*;
 

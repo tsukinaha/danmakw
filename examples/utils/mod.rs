@@ -52,7 +52,7 @@ pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError>
 
                 let parts: Vec<&str> = p_value.split(',').collect();
                 if parts.len() < 8 {
-                    eprintln!("Skipping invalid 'p' attribute format: {}", p_value);
+                    eprintln!("Skipping invalid 'p' attribute format: {p_value}");
                     reader.read_to_end(e.name())?;
                     buf.clear();
                     continue;
@@ -72,7 +72,7 @@ pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError>
                     4 => DanmakuMode::BottomCenter,
                     5 => DanmakuMode::TopCenter,
                     _ => {
-                        eprintln!("Unknown danmaku mode {}, defaulting to Scroll", mode_val);
+                        eprintln!("Unknown danmaku mode {mode_val}, defaulting to Scroll");
                         DanmakuMode::Scroll
                     }
                 };

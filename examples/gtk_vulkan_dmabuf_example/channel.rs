@@ -5,8 +5,8 @@ use flume::{
 };
 use once_cell::sync::Lazy;
 
-use danmakw::ExportTextureBuf;
 use super::RendererEvent;
+use danmakw::ExportTextureBuf;
 
 pub struct RequestFrameChannel {
     pub tx: Sender<RendererEvent>,

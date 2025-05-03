@@ -168,7 +168,7 @@ impl winit::application::ApplicationHandler for Application {
                             surface_config.width,
                             surface_config.height,
                         ) {
-                            eprintln!("Surface error: {:?}", e);
+                            eprintln!("Surface error: {e:?}");
                             match e {
                                 wgpu::SurfaceError::Lost => {
                                     surface.configure(device, surface_config);
@@ -193,9 +193,9 @@ impl winit::application::ApplicationHandler for Application {
                         window.request_redraw();
                     }
                     Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
-                    Err(e) => eprintln!("Error acquiring frame: {:?}", e),
+                    Err(e) => eprintln!("Error acquiring frame: {e:?}"),
                 }
-                
+
                 dbg!("Frame time: {:?}", instant.elapsed());
             }
             WindowEvent::CloseRequested => event_loop.exit(),

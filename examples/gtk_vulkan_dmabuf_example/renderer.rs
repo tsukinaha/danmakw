@@ -12,9 +12,9 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new() -> Self{
+    pub async fn new() -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::PRIMARY,
+            backends: wgpu::Backends::GL,
             backend_options: wgpu::BackendOptions::from_env_or_default(),
             flags: wgpu::InstanceFlags::default(),
         });
@@ -34,12 +34,8 @@ impl Renderer {
             wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
         );
 
-        let danmaku_renderer = danmakw::Renderer::new(
-            &device,
-            &queue,
-            wgpu::TextureFormat::Rgba8Unorm,
-            1.0,
-        );
+        let danmaku_renderer =
+            danmakw::Renderer::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1.0);
 
         Self {
             instance,
@@ -60,16 +56,12 @@ impl Renderer {
 
     pub async fn render(&mut self, width: u32, height: u32) {
         self.danmaku_renderer.update();
-        let frame = self.danmaku_renderer.render_to_export_texture(
-            &self.device,
-            &self.instance,
-            &self.queue,
-            width,
-            height
-        ).unwrap();
+        let frame = self
+            .danmaku_renderer
+            .render_to_export_texture(&self.device, &self.instance, &self.queue, width, height)
+            .unwrap();
 
-        RECEIVE_FRAME_CHANNEL.tx
-            .send_async(frame).await.unwrap();
+        RECEIVE_FRAME_CHANNEL.tx.send_async(frame).await.unwrap();
     }
 
     pub fn set_font_size(&mut self, size: u32) {
@@ -95,12 +87,18 @@ impl Renderer {
     pub fn set_video_time(&mut self, time: f64) {
         self.danmaku_renderer.set_video_time(time);
     }
+
+    pub fn set_video_speed(&mut self, speed: f64) {
+        self.danmaku_renderer.set_video_speed(speed);
+    }
+
+    pub fn set_font_name(&mut self, font_name: String) {
+        self.danmaku_renderer.set_font_name(font_name);
+    }
 }
 
 fn create_device_queue(
-    instance: &wgpu::Instance,
-    adapter: &wgpu::Adapter,
-    required_features: wgpu::Features,
+    instance: &wgpu::Instance, adapter: &wgpu::Adapter, required_features: wgpu::Features,
 ) -> (wgpu::Device, wgpu::Queue) {
     let instance = unsafe {
         if let Some(instance) = instance.as_hal::<hal::api::Vulkan>() {

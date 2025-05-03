@@ -30,14 +30,20 @@ use wgpu::{
     Operations,
     RenderPassColorAttachment,
     RenderPassDescriptor,
-    TextureFormat, TextureView,
+    TextureFormat,
+    TextureView,
 };
+use wgpu_types::PollType;
 
-use super::export_texture::{ExportTexture, ExportTextureBuf};
+use super::export_texture::{
+    ExportTexture,
+    ExportTextureBuf,
+};
 
 pub struct RendererInner {
     pub danmaku_queue: DanmakuQueue,
     pub video_time: f64,
+    pub video_speed: f64,
 
     font_system: FontSystem,
     swash_cache: SwashCache,
@@ -61,6 +67,7 @@ pub struct RendererInner {
     pub line_height: f32,
     pub top_padding: f32,
     pub font_size: f32,
+    pub font_name: String,
     spacing: f32,
     last_update: std::time::Instant,
     pub scale_factor: f64,
@@ -191,8 +198,10 @@ impl RendererInner {
         let bottom_center_row_occupied = vec![false; bottom_center_max_rows];
 
         Self {
+            font_name: String::new(),
             danmaku_queue: DanmakuQueue::new(),
             video_time: 0.0,
+            video_speed: 1.0,
             font_system,
             swash_cache,
             viewport,
@@ -224,7 +233,7 @@ impl RendererInner {
         let metrics = Metrics::new(font_size, self.line_height);
         let mut text_buffer = Buffer::new(&mut self.font_system, metrics);
         let text_attrs = Attrs::new()
-            .family(Family::Name("LXGW WenKai Screen"))
+            .family(Family::Name(&self.font_name))
             .weight(Weight::NORMAL);
 
         text_buffer.set_text(
@@ -266,7 +275,7 @@ impl RendererInner {
         let now = std::time::Instant::now();
         let delta_time = now.duration_since(self.last_update).as_millis_f32();
         self.last_update = now;
-        self.video_time += delta_time as f64;
+        self.video_time += delta_time as f64 * self.video_speed;
 
         for text in self.scroll_danmaku.iter_mut() {
             text.x += text.velocity_x * delta_time * self.speed_factor as f32;
@@ -401,14 +410,25 @@ impl RendererInner {
 
 impl RendererInner {
     pub fn render_to_export_texture(
-        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue, width: u32, height: u32,
+        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue,
+        width: u32, height: u32,
     ) -> Result<ExportTextureBuf, wgpu::SurfaceError> {
-        let target_size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
+        let target_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
 
-        if self.texture.as_ref().map_or(true, |tex| tex.size != target_size) {
+        if self
+            .texture
+            .as_ref()
+            .is_none_or(|tex| tex.size != target_size)
+        {
             let new_texture = ExportTexture::new(device, instance, target_size);
-            let new_view = new_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
-            
+            let new_view = new_texture
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
+
             self.texture = Some(new_texture);
             self.texture_view = Some(new_view);
             self.viewport.update(queue, Resolution { width, height });
@@ -493,10 +513,13 @@ impl RendererInner {
             });
 
             self.text_renderer
-                .render(&self.atlas, &self.viewport, &mut pass).unwrap();
+                .render(&self.atlas, &self.viewport, &mut pass)
+                .unwrap();
         }
 
         queue.submit(Some(encoder.finish()));
+
+        device.poll(wgpu::PollType::Wait);
 
         let texture_buf = ExportTextureBuf {
             fd: texture.fd,
