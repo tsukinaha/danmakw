@@ -3,9 +3,9 @@ mod renderer;
 
 pub use renderer::Renderer as DanmakwAreaRenderer;
 
+use adw::prelude::*;
 use area::DanmakwArea;
 use gtk::prelude::*;
-use adw::prelude::*;
 
 pub fn build_ui(application: &gtk::Application) {
     let window = adw::ApplicationWindow::builder()
