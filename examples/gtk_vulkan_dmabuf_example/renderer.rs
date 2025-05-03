@@ -5,7 +5,6 @@ use super::channel::RECEIVE_FRAME_CHANNEL;
 
 pub struct Renderer {
     pub instance: wgpu::Instance,
-    pub adapter: wgpu::Adapter,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub danmaku_renderer: danmakw::Renderer,
@@ -39,7 +38,6 @@ impl Renderer {
 
         Self {
             instance,
-            adapter,
             device,
             queue,
             danmaku_renderer,
@@ -48,10 +46,6 @@ impl Renderer {
 
     pub fn init(&mut self, danmaku: Vec<danmakw::Danmaku>) {
         self.danmaku_renderer.init(danmaku);
-    }
-
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.danmaku_renderer.resize(&self.queue, width, height);
     }
 
     pub async fn render(&mut self, width: u32, height: u32) {
@@ -86,10 +80,6 @@ impl Renderer {
 
     pub fn set_video_time(&mut self, time: f64) {
         self.danmaku_renderer.set_video_time(time);
-    }
-
-    pub fn set_video_speed(&mut self, speed: f64) {
-        self.danmaku_renderer.set_video_speed(speed);
     }
 
     pub fn set_font_name(&mut self, font_name: String) {

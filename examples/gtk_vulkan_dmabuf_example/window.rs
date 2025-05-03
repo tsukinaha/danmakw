@@ -13,8 +13,7 @@ mod imp {
 
     use super::*;
 
-    #[derive(Debug, Default, glib::Properties)]
-    #[properties(wrapper_type = super::TestWindow)]
+    #[derive(Debug, Default)]
     pub struct TestWindow {}
 
     #[glib::object_subclass]
@@ -24,7 +23,6 @@ mod imp {
         type ParentType = adw::ApplicationWindow;
     }
 
-    #[glib::derived_properties]
     impl ObjectImpl for TestWindow {
         fn constructed(&self) {
             self.parent_constructed();

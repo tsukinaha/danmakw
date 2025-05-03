@@ -4,10 +4,8 @@ use gtk::{
     prelude::*,
 };
 
-use adw::{
-    prelude::*,
-    subclass::prelude::*,
-};
+use adw::
+    subclass::prelude::*;
 
 use super::{
     Properties,
@@ -303,17 +301,11 @@ impl DanmakuArea {
                             Properties::StartRendering(()) => {
                                 obj.start_rendering();
                             }
-                            Properties::SetDanmaku(danmaku) => {
-                                renderer.init(danmaku);
-                            }
                             Properties::SetTimeMilis(time) => {
                                 renderer.set_video_time(time);
                             }
                             Properties::SetFontName(font_name) => {
                                 renderer.set_font_name(font_name);
-                            }
-                            Properties::SetVideoSpeed(speed) => {
-                                renderer.set_video_speed(speed);
                             }
                         },
                     }

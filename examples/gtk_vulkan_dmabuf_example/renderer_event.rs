@@ -5,9 +5,7 @@ pub enum Event {
 
 pub enum Properties {
     SetFontSize(u32),
-    SetDanmaku(Vec<danmakw::Danmaku>),
     SetTimeMilis(f64),
-    SetVideoSpeed(f64),
     SetTopPadding(u32),
     SetRowSpacing(u32),
     SetSpeedFactor(f64),

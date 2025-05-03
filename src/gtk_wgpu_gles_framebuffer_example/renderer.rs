@@ -1,7 +1,4 @@
-use gtk::{
-    prelude::*,
-    subclass::prelude::*,
-};
+
 use std::num::NonZeroU32;
 use wgpu::{
     InstanceDescriptor,
@@ -19,12 +16,11 @@ use wgpu_types::{
 
 pub struct Renderer {
     fbo: glow::NativeFramebuffer,
-    pub instance: wgpu::Instance,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
-    pub danmaku_renderer: danmakw::Renderer,
+    pub danmaku_renderer: crate::Renderer,
 }
 
 impl Renderer {
@@ -75,13 +71,12 @@ impl Renderer {
         };
 
         let danmaku_renderer =
-            danmakw::Renderer::new(&device, &queue, wgpu::TextureFormat::Rgba8UnormSrgb, 1.0);
+            crate::Renderer::new(&device, &queue, wgpu::TextureFormat::Rgba8UnormSrgb, 1.0);
 
         let (texture, view) = Self::create_texture_and_view(100, 100, fbo, &device);
 
         Self {
             fbo,
-            instance,
             device,
             queue,
             danmaku_renderer,
@@ -90,7 +85,7 @@ impl Renderer {
         }
     }
 
-    fn resize(&mut self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32) {
         let (texture, view) = Self::create_texture_and_view(width, height, self.fbo, &self.device);
 
         self.texture = texture;
@@ -136,14 +131,12 @@ impl Renderer {
     pub fn render(&mut self, width: u32, height: u32) {
         self.danmaku_renderer.update();
 
-        self.resize(width, height);
-
         self.danmaku_renderer
             .render(&self.device, &self.queue, &self.view, width, height)
             .unwrap();
     }
 
-    pub fn init(&mut self, danmaku: Vec<danmakw::Danmaku>) {
+    pub fn init(&mut self, danmaku: Vec<crate::Danmaku>) {
         self.danmaku_renderer.init(danmaku);
     }
 }

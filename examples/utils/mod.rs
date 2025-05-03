@@ -23,8 +23,6 @@ pub enum ParseError {
     ParseInt(#[from] std::num::ParseIntError),
     #[error("UTF-8 decoding error: {0}")]
     Utf8(#[from] std::str::Utf8Error),
-    #[error("UTF-8 decoding error (from_utf8_lossy): {0}")]
-    Utf8Lossy(String),
 }
 
 pub fn parse_bilibili_xml(xml_content: &str) -> Result<Vec<Danmaku>, ParseError> {

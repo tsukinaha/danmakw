@@ -73,9 +73,6 @@ mod imp {
                 async move {
                     imp.obj().attach_buffers();
                     let mut renderer = DanmakwAreaRenderer::new().await;
-                    let danmakus =
-                        crate::utils::parse_bilibili_xml(include_str!("../test.xml")).unwrap();
-                    renderer.init(danmakus);
                     renderer.danmaku_renderer.set_font_name(imp.font_name());
                     imp.renderer.replace(Some(renderer));
                 }
@@ -96,13 +93,18 @@ mod imp {
         }
 
         fn unrealize(&self) {
+            self.obj().stop_rendering();
             self.renderer.take();
             self.parent_unrealize();
         }
     }
 
     impl GLAreaImpl for DanmakwArea {
-        fn resize(&self, _width: i32, _height: i32) {}
+        fn resize(&self, width: i32, height: i32) {
+            if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                renderer.resize(width as u32, height as u32);
+            }
+        }
 
         fn render(&self, _context: &gdk::GLContext) -> glib::Propagation {
             let (width, height) = self.get_dimensions();
