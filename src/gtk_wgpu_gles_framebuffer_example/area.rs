@@ -77,19 +77,18 @@ mod imp {
                     imp.renderer.replace(Some(renderer));
                 }
             ));
+
+            self.obj().start_rendering();
         }
     }
 
     impl WidgetImpl for DanmakwArea {
         fn realize(&self) {
             self.parent_realize();
-            self.obj().attach_buffers();
 
             if let Some(e) = self.obj().error() {
                 panic!("Failed to create GLArea: {e}");
             }
-
-            self.obj().start_rendering();
         }
 
         fn unrealize(&self) {

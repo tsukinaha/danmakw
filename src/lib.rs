@@ -8,6 +8,7 @@ pub use danmaku::{
     Danmaku,
     DanmakuMode,
     ScrollingDanmaku,
+    DanmakuQueue,
 };
 
 

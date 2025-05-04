@@ -4,7 +4,7 @@ use crate::{
     Danmaku,
     DanmakuMode,
     ScrollingDanmaku,
-    danmaku::DanmakuQueue,
+    DanmakuQueue,
 };
 use glyphon::{
     Attrs,
