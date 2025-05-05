@@ -3,8 +3,8 @@ use crate::{
     Color,
     Danmaku,
     DanmakuMode,
-    ScrollingDanmaku,
     DanmakuQueue,
+    ScrollingDanmaku,
 };
 use glyphon::{
     Attrs,

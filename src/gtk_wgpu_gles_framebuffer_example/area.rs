@@ -66,19 +66,6 @@ mod imp {
             self.obj().add_css_class("danmakw-area");
 
             load_epoxy();
-
-            glib::spawn_future_local(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                async move {
-                    imp.obj().attach_buffers();
-                    let mut renderer = DanmakwAreaRenderer::new().await;
-                    renderer.danmaku_renderer.set_font_name(imp.font_name());
-                    imp.renderer.replace(Some(renderer));
-                }
-            ));
-
-            self.obj().start_rendering();
         }
     }
 
@@ -89,6 +76,19 @@ mod imp {
             if let Some(e) = self.obj().error() {
                 panic!("Failed to create GLArea: {e}");
             }
+
+            glib::spawn_future_local(glib::clone!(
+                #[weak(rename_to = imp)]
+                self,
+                async move {
+                    imp.obj().make_current();
+                    imp.obj().attach_buffers();
+
+                    let mut renderer = DanmakwAreaRenderer::new().await;
+                    renderer.danmaku_renderer.set_font_name(imp.font_name());
+                    imp.renderer.replace(Some(renderer));
+                }
+            ));
         }
 
         fn unrealize(&self) {
@@ -254,7 +254,7 @@ impl DanmakwArea {
         glib::Object::new()
     }
 
-    fn start_rendering(&self) {
+    pub fn start_rendering(&self) {
         let id = self.add_tick_callback(glib::clone!(
             #[weak(rename_to = obj)]
             self,

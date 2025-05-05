@@ -1,7 +1,8 @@
-
-use gtk::prelude::*;
 use adw::prelude::*;
-use gtk::glib;
+use gtk::{
+    glib,
+    prelude::*,
+};
 mod utils;
 
 pub fn build_ui(application: &gtk::Application) {
@@ -31,10 +32,11 @@ pub fn build_ui(application: &gtk::Application) {
                 #[weak(rename_to = area)]
                 area,
                 async move {
-                glib::timeout_future_seconds(1).await;
-                let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
-                area.set_danmaku(danmakus);
-            }));
+                    glib::timeout_future_seconds(1).await;
+                    let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
+                    area.set_danmaku(danmakus);
+                }
+            ));
             grid.attach(&area, col, row, 1, 1);
         }
     }

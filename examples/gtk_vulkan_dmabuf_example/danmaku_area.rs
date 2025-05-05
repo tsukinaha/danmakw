@@ -4,8 +4,7 @@ use gtk::{
     prelude::*,
 };
 
-use adw::
-    subclass::prelude::*;
+use adw::subclass::prelude::*;
 
 use super::{
     Properties,

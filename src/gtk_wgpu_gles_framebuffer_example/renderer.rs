@@ -1,4 +1,3 @@
-
 use std::num::NonZeroU32;
 use wgpu::{
     InstanceDescriptor,
@@ -23,12 +22,11 @@ pub struct Renderer {
     pub danmaku_renderer: crate::Renderer,
 }
 
+static LOAD_FN: fn(&str) -> *const std::ffi::c_void = |s| epoxy::get_proc_addr(s) as *const _;
+
 impl Renderer {
     pub async fn new() -> Self {
         use glow::HasContext;
-
-        static LOAD_FN: fn(&str) -> *const std::ffi::c_void =
-            |s| epoxy::get_proc_addr(s) as *const _;
 
         let instance = wgpu::Instance::new(&InstanceDescriptor {
             backends: wgpu::Backends::GL,
