@@ -1,8 +1,5 @@
 use adw::prelude::*;
-use gtk::{
-    glib,
-    prelude::*,
-};
+use gtk::glib;
 mod utils;
 
 pub fn build_ui(application: &gtk::Application) {
@@ -21,30 +18,19 @@ pub fn build_ui(application: &gtk::Application) {
 
     toolbar_view.add_top_bar(&title_bar);
 
-    let grid = gtk::Grid::new();
-    grid.set_row_homogeneous(true);
-    grid.set_column_homogeneous(true);
-
-    for row in 0..2 {
-        for col in 0..2 {
-            let area = danmakw::DanmakwArea::default();
-            gtk::glib::spawn_future_local(glib::clone!(
-                #[weak(rename_to = area)]
-                area,
-                async move {
-                    glib::timeout_future_seconds(1).await;
-                    let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
-                    area.set_danmaku(danmakus);
-                }
-            ));
-            grid.attach(&area, col, row, 1, 1);
+    let area = danmakw::DanmakwArea::default();
+    gtk::glib::spawn_future_local(glib::clone!(
+        #[weak(rename_to = area)]
+        area,
+        async move {
+            glib::timeout_future_seconds(1).await;
+            let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
+            area.set_danmaku(danmakus);
+            area.start_rendering();
         }
-    }
+    ));
 
-    grid.set_hexpand(true);
-    grid.set_vexpand(true);
-
-    toolbar_view.set_content(Some(&grid));
+    toolbar_view.set_content(Some(&area));
 
     window.set_content(Some(&toolbar_view));
     window.present();

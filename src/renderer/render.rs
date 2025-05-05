@@ -403,6 +403,8 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
 
+        device.poll(wgpu::PollType::Wait).unwrap();
+
         Ok(())
     }
 }

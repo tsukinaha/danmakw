@@ -67,6 +67,10 @@ mod imp {
 
             load_epoxy();
         }
+
+        fn dispose(&self) {
+            self.obj().stop_rendering();
+        }
     }
 
     impl WidgetImpl for DanmakwArea {
@@ -92,8 +96,8 @@ mod imp {
         }
 
         fn unrealize(&self) {
-            self.obj().stop_rendering();
-            self.renderer.take();
+            *self.renderer.borrow_mut() = None;
+
             self.parent_unrealize();
         }
     }
@@ -110,7 +114,7 @@ mod imp {
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.render(width, height);
             }
-            glib::Propagation::Stop
+            glib::Propagation::Proceed
         }
     }
 
