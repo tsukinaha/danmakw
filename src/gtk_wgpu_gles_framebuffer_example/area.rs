@@ -55,7 +55,11 @@ mod imp {
                 "
                 .danmakw-area {
                     transform: scaleY(-1);
-                }",
+                }
+                .ad {
+                    background-color: rgba(255,255,255,0.4);
+                }
+    ",
             );
             gtk::style_context_add_provider_for_display(
                 &gdk::Display::default().expect("Could not connect to a display."),
@@ -96,8 +100,7 @@ mod imp {
         }
 
         fn unrealize(&self) {
-            *self.renderer.borrow_mut() = None;
-
+            self.renderer.replace(None);
             self.parent_unrealize();
         }
     }

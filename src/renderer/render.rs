@@ -20,6 +20,7 @@ use glyphon::{
     TextAtlas,
     TextBounds,
     TextRenderer,
+    TextShadow,
     Viewport,
     Weight,
 };
@@ -74,6 +75,7 @@ pub struct RendererInner {
 
     pub texture: Option<ExportTexture>,
     pub texture_view: Option<TextureView>,
+    pub shadow: TextShadow,
 }
 
 const SCROLL_DURATION_MS: f32 = 8000.0;
@@ -192,6 +194,10 @@ impl RendererInner {
         let font_size = 24.0 * scale_factor as f32;
         let speed_factor = 1.0;
         let spacing = 20.0 * scale_factor as f32;
+        let shadow = TextShadow {
+            shadow_intensity: 0.5,
+            shadow_radius: 4.0,
+        };
 
         let top_center_row_occupied = vec![false; top_center_max_rows];
         let bottom_center_row_occupied = vec![false; bottom_center_max_rows];
@@ -224,6 +230,7 @@ impl RendererInner {
             spacing,
             texture_view: None,
             texture: None,
+            shadow,
         }
     }
 
@@ -332,6 +339,7 @@ impl RendererInner {
                 bounds: TextBounds::default(),
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
+                shadow: Some(self.shadow),
             }
         });
 
@@ -345,6 +353,7 @@ impl RendererInner {
                 bounds: TextBounds::default(),
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
+                shadow: Some(self.shadow),
             }
         });
 
@@ -358,6 +367,7 @@ impl RendererInner {
                 bounds: TextBounds::default(),
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
+                shadow: Some(self.shadow),
             }
         });
 
@@ -390,6 +400,7 @@ impl RendererInner {
                         load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
@@ -448,6 +459,7 @@ impl RendererInner {
                 bounds: TextBounds::default(),
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
+                shadow: Some(self.shadow),
             }
         });
 
@@ -461,6 +473,7 @@ impl RendererInner {
                 bounds: TextBounds::default(),
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
+                shadow: Some(self.shadow),
             }
         });
 
@@ -474,6 +487,7 @@ impl RendererInner {
                 bounds: TextBounds::default(),
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
+                shadow: Some(self.shadow),
             }
         });
 
@@ -507,6 +521,7 @@ impl RendererInner {
                         load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,

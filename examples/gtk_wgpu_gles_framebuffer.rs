@@ -31,6 +31,7 @@ pub fn build_ui(application: &gtk::Application) {
     ));
 
     toolbar_view.set_content(Some(&area));
+    toolbar_view.add_css_class("ad");
 
     window.set_content(Some(&toolbar_view));
     window.present();
