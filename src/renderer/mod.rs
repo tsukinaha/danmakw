@@ -1,5 +1,7 @@
 mod export_texture;
 mod render;
+
+#[cfg(feature = "export-texture")]
 pub use export_texture::{
     ExportTexture,
     ExportTextureBuf,
@@ -56,6 +58,7 @@ impl Renderer {
         self.0.render(device, queue, view, width, height)
     }
 
+    #[cfg(feature = "export-texture")]
     pub fn render_to_export_texture(
         &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue,
         width: u32, height: u32,

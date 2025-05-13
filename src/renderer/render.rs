@@ -420,6 +420,7 @@ impl RendererInner {
     }
 }
 
+#[cfg(feature = "export-texture")]
 impl RendererInner {
     pub fn render_to_export_texture(
         &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue,

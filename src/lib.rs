@@ -11,11 +11,10 @@ pub use danmaku::{
     ScrollingDanmaku,
 };
 
-pub use renderer::{
-    ExportTexture,
-    ExportTextureBuf,
-    Renderer,
-};
+#[cfg(feature = "export-texture")]
+pub use renderer::ExportTexture;
+
+pub use renderer::Renderer;
 
 #[cfg(feature = "gtk4-gles")]
 mod gtk_wgpu_gles_framebuffer_example;
