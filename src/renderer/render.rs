@@ -74,6 +74,7 @@ pub struct RendererInner {
     pub scale_factor: f64,
     pub speed_factor: f64,
 
+    #[cfg(feature = "export-texture")]
     pub texture: Option<ExportTexture>,
     pub texture_view: Option<TextureView>,
     pub shadow: TextShadow,
@@ -230,6 +231,7 @@ impl RendererInner {
             paused: false,
             spacing,
             texture_view: None,
+            #[cfg(feature = "export-texture")]
             texture: None,
             shadow,
         }
