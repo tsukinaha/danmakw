@@ -85,18 +85,12 @@ mod imp {
                 panic!("Failed to create GLArea: {e}");
             }
 
-            glib::spawn_future_local(glib::clone!(
-                #[weak(rename_to = imp)]
-                self,
-                async move {
-                    imp.obj().make_current();
-                    imp.obj().attach_buffers();
+            self.make_current();
+            self.obj().attach_buffers();
 
-                    let mut renderer = DanmakwAreaRenderer::new().await;
-                    renderer.danmaku_renderer.set_font_name(imp.font_name());
+            let mut renderer = DanmakwAreaRenderer::new();
+                  renderer.danmaku_renderer.set_font_name(imp.font_name());
                     imp.renderer.replace(Some(renderer));
-                }
-            ));
         }
 
         fn unrealize(&self) {
