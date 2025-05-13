@@ -1,3 +1,4 @@
+#[cfg(feature = "export-texture")]
 mod export_texture;
 mod render;
 

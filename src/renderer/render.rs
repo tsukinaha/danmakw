@@ -35,6 +35,7 @@ use wgpu::{
     TextureView,
 };
 
+#[cfg(feature = "export-texture")]
 use super::export_texture::{
     ExportTexture,
     ExportTextureBuf,
