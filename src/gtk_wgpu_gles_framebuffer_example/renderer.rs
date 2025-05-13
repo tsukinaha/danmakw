@@ -25,7 +25,7 @@ pub struct Renderer {
 static LOAD_FN: fn(&str) -> *const std::ffi::c_void = |s| epoxy::get_proc_addr(s) as *const _;
 
 impl Renderer {
-    pub async fn new() -> Self {
+    pub fn new() -> Self {
         use glow::HasContext;
 
         let instance = wgpu::Instance::new(&InstanceDescriptor {
