@@ -85,12 +85,12 @@ mod imp {
                 panic!("Failed to create GLArea: {e}");
             }
 
-            self.make_current();
+            self.obj().make_current();
             self.obj().attach_buffers();
 
             let mut renderer = DanmakwAreaRenderer::new();
-           renderer.danmaku_renderer.set_font_name(self.font_name());
-                    self.renderer.replace(Some(renderer));
+          renderer.danmaku_renderer.set_font_name(self.font_name());
+                  self.renderer.replace(Some(renderer));
         }
 
         fn unrealize(&self) {
