@@ -89,8 +89,8 @@ mod imp {
             self.obj().attach_buffers();
 
             let mut renderer = DanmakwAreaRenderer::new();
-                  renderer.danmaku_renderer.set_font_name(imp.font_name());
-                    imp.renderer.replace(Some(renderer));
+           renderer.danmaku_renderer.set_font_name(self.font_name());
+                    self.renderer.replace(Some(renderer));
         }
 
         fn unrealize(&self) {
