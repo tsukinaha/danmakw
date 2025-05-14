@@ -9,6 +9,7 @@ use std::cell::RefCell;
 mod imp {
     use std::panic;
 
+    use gdk::GLAPI;
     use gtk::TickCallbackId;
 
     use crate::gtk_wgpu_gles_framebuffer_example::DanmakwAreaRenderer;
@@ -59,7 +60,7 @@ mod imp {
                 .ad {
                     background-color: rgba(255,255,255,0.4);
                 }
-    ",
+                ",
             );
             gtk::style_context_add_provider_for_display(
                 &gdk::Display::default().expect("Could not connect to a display."),
@@ -68,12 +69,9 @@ mod imp {
             );
 
             self.obj().add_css_class("danmakw-area");
+            self.obj().set_allowed_apis(GLAPI::GLES);
 
             load_epoxy();
-        }
-
-        fn dispose(&self) {
-            self.obj().stop_rendering();
         }
     }
 
@@ -89,11 +87,12 @@ mod imp {
             self.obj().attach_buffers();
 
             let mut renderer = DanmakwAreaRenderer::new();
-          renderer.danmaku_renderer.set_font_name(self.font_name());
-                  self.renderer.replace(Some(renderer));
+            renderer.danmaku_renderer.set_font_name(self.font_name());
+            self.renderer.replace(Some(renderer));
         }
 
         fn unrealize(&self) {
+            self.obj().stop_rendering();
             self.renderer.replace(None);
             self.parent_unrealize();
         }
@@ -111,7 +110,7 @@ mod imp {
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.render(width, height);
             }
-            glib::Propagation::Proceed
+            glib::Propagation::Stop
         }
     }
 

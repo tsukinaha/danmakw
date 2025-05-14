@@ -197,8 +197,8 @@ impl RendererInner {
         let speed_factor = 1.0;
         let spacing = 20.0 * scale_factor as f32;
         let shadow = TextShadow {
-            shadow_intensity: 0.5,
-            shadow_radius: 4.0,
+            shadow_intensity: 0.3,
+            shadow_radius: 3.0,
         };
 
         let top_center_row_occupied = vec![false; top_center_max_rows];
