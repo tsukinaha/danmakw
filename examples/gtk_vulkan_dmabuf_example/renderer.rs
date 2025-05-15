@@ -1,6 +1,7 @@
 use ash::vk;
-use wgpu::hal;
+use wgpu::{hal, MemoryBudgetThresholds};
 
+#[cfg(feature = "export-texture")]
 use super::channel::RECEIVE_FRAME_CHANNEL;
 
 pub struct Renderer {
@@ -13,9 +14,10 @@ pub struct Renderer {
 impl Renderer {
     pub async fn new() -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::GL,
+            backends: wgpu::Backends::VULKAN,
             backend_options: wgpu::BackendOptions::from_env_or_default(),
             flags: wgpu::InstanceFlags::default(),
+            memory_budget_thresholds: MemoryBudgetThresholds::default(),
         });
 
         let adapter = instance
@@ -48,6 +50,7 @@ impl Renderer {
         self.danmaku_renderer.init(danmaku);
     }
 
+    #[cfg(feature = "export-texture")]
     pub async fn render(&mut self, width: u32, height: u32) {
         self.danmaku_renderer.update();
         let frame = self

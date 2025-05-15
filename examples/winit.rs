@@ -42,9 +42,10 @@ impl WindowState {
         let scale_factor = window.scale_factor();
 
         let instance = Instance::new(&InstanceDescriptor {
-            backends: wgpu::Backends::VULKAN,
+            backends: wgpu::Backends::PRIMARY,
             backend_options: wgpu::BackendOptions::from_env_or_default(),
             flags: wgpu::InstanceFlags::default(),
+            memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
         });
 
         let surface = instance.create_surface(window.clone()).unwrap();

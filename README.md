@@ -3,9 +3,9 @@ WGPU based danmaku renderer
 
 ### Run the example
 ```bash
-cargo run --release --example winit # winit example
-cargo run --release --example gtk_vulkan_dmabuf # gtk-vulkan-dmabuf example
-cargo run --release --example gtk_wgpu_gles_framebuffer # gtk-wgpu-dles-framebuffer example
+cargo run --release --package danmakw --example winit --no-default-features # winit example
+cargo run --release --package danmakw --example gtk_vulkan_dmabuf --features export-texture # gtk-vulkan-dmabuf example
+cargo run --release --example gtk_wgpu_gles_framebuffer # gtk-wgpu-gles-framebuffer example
 ```
 
 ### Known issues

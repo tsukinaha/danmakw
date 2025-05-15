@@ -14,6 +14,9 @@ pub use danmaku::{
 #[cfg(feature = "export-texture")]
 pub use renderer::ExportTexture;
 
+#[cfg(feature = "export-texture")]
+pub use renderer::ExportTextureBuf;
+
 pub use renderer::Renderer;
 
 #[cfg(feature = "gtk4-gles")]
