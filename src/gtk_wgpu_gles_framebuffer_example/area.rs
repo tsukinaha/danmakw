@@ -38,6 +38,9 @@ mod imp {
         #[property(get, set = Self::set_font_name)]
         pub font_name: RefCell<String>,
 
+        #[property(get, set)]
+        pub enable_danmaku: RefCell<bool>,
+
         pub renderer: RefCell<Option<DanmakwAreaRenderer>>,
         render_loop_callback_id: RefCell<Option<TickCallbackId>>,
     }
@@ -255,6 +258,10 @@ impl DanmakwArea {
     }
 
     pub fn start_rendering(&self, timer: impl Timer + Clone + 'static) {
+        if !self.enable_danmaku() {
+            return;
+        }
+
         let id = self.add_tick_callback(glib::clone!(
             #[weak(rename_to = obj)]
             self,
