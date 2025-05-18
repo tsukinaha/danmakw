@@ -6,6 +6,8 @@ use gtk::{
 };
 use std::cell::RefCell;
 
+use super::Timer;
+
 mod imp {
     use std::panic;
 
@@ -252,16 +254,16 @@ impl DanmakwArea {
         glib::Object::new()
     }
 
-    pub fn start_rendering(&self) {
+    pub fn start_rendering(&self, timer: impl Timer + Clone + 'static) {
         let id = self.add_tick_callback(glib::clone!(
             #[weak(rename_to = obj)]
             self,
+            #[strong]
+            timer,
             #[upgrade_or]
             glib::ControlFlow::Continue,
-            move |_, frame_clock| {
-                let frame_time = 1000.0 / frame_clock.fps();
-                *obj.imp().time_milis.borrow_mut() +=
-                    if frame_time < 60.0 { frame_time } else { 60.0 };
+            move |_, _| {
+                *obj.imp().time_milis.borrow_mut() = timer.time_milis();
                 obj.queue_draw();
                 glib::ControlFlow::Continue
             }

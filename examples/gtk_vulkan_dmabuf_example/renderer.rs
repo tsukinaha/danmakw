@@ -1,5 +1,8 @@
 use ash::vk;
-use wgpu::{hal, MemoryBudgetThresholds};
+use wgpu::{
+    MemoryBudgetThresholds,
+    hal,
+};
 
 #[cfg(feature = "export-texture")]
 use super::channel::RECEIVE_FRAME_CHANNEL;
