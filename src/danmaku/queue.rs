@@ -37,4 +37,10 @@ impl DanmakuQueue {
 
         self.now_queue.drain(..split_index).collect()
     }
+
+    pub fn reset_time(&mut self, time: f64) {
+        self.now_queue = self.all_queue.clone();
+
+        self.pop_to_time(time);
+    }
 }

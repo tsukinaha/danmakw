@@ -25,11 +25,9 @@ impl Renderer {
         self.0.resize(queue, width, height);
     }
 
-    // Hard set the video time, Danmaku not presented will be removed
+    // Hard set the video time
     pub fn set_video_time(&mut self, time: f64) {
-        self.0.video_time = time;
-
-        self.0.danmaku_queue.pop_to_time(time);
+        self.0.danmaku_queue.reset_time(time);
         self.clear();
     }
 
