@@ -47,6 +47,7 @@ mod imp {
         type ParentType = gtk::GLArea;
     }
 
+    #[glib::derived_properties]
     impl ObjectImpl for DanmakwArea {
         fn constructed(&self) {
             self.parent_constructed();
@@ -56,9 +57,6 @@ mod imp {
                 "
                 .danmakw-area {
                     transform: scaleY(-1);
-                }
-                .ad {
-                    background-color: rgba(255,255,255,0.4);
                 }
                 ",
             );
@@ -70,6 +68,7 @@ mod imp {
 
             self.obj().add_css_class("danmakw-area");
             self.obj().set_allowed_apis(GLAPI::GLES);
+            self.obj().set_auto_render(false);
 
             load_epoxy();
         }
