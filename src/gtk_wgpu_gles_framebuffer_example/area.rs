@@ -68,7 +68,6 @@ mod imp {
 
             self.obj().add_css_class("danmakw-area");
             self.obj().set_allowed_apis(GLAPI::GLES);
-            self.obj().set_auto_render(false);
 
             load_epoxy();
         }
@@ -107,7 +106,7 @@ mod imp {
         fn render(&self, _context: &gdk::GLContext) -> glib::Propagation {
             let (width, height) = self.get_dimensions();
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
-                renderer.render(width, height);
+                renderer.render(width, height, self.obj().time_milis());
             }
             glib::Propagation::Stop
         }
@@ -259,7 +258,10 @@ impl DanmakwArea {
             self,
             #[upgrade_or]
             glib::ControlFlow::Continue,
-            move |_, _| {
+            move |_, frame_clock| {
+                let frame_time = 1000.0 / frame_clock.fps();
+                *obj.imp().time_milis.borrow_mut() +=
+                    if frame_time < 60.0 { frame_time } else { 60.0 };
                 obj.queue_draw();
                 glib::ControlFlow::Continue
             }

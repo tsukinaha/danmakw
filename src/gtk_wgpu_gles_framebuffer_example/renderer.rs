@@ -24,6 +24,12 @@ pub struct Renderer {
 
 static LOAD_FN: fn(&str) -> *const std::ffi::c_void = |s| epoxy::get_proc_addr(s) as *const _;
 
+impl Default for Renderer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Renderer {
     pub fn new() -> Self {
         use glow::HasContext;
@@ -126,8 +132,8 @@ impl Renderer {
         (texture, view)
     }
 
-    pub fn render(&mut self, width: u32, height: u32) {
-        self.danmaku_renderer.update();
+    pub fn render(&mut self, width: u32, height: u32, time_milis: f64) {
+        self.danmaku_renderer.update(time_milis);
 
         self.danmaku_renderer
             .render(&self.device, &self.queue, &self.view, width, height)

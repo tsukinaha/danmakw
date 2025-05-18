@@ -30,14 +30,15 @@ impl Renderer {
         self.0.video_time = time;
 
         self.0.danmaku_queue.pop_to_time(time);
+        self.clear();
     }
 
     pub fn init(&mut self, danmaku: Vec<Danmaku>) {
         self.0.danmaku_queue.init(danmaku, 0.0);
     }
 
-    pub fn update(&mut self) {
-        self.0.update();
+    pub fn update(&mut self, time_milis: f64) {
+        self.0.update(time_milis);
     }
 
     pub fn add_text(&mut self, danmaku: Danmaku) {

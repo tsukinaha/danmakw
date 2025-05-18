@@ -70,7 +70,6 @@ pub struct RendererInner {
     pub font_size: f32,
     pub font_name: String,
     spacing: f32,
-    last_update: std::time::Instant,
     pub scale_factor: f64,
     pub speed_factor: f64,
 
@@ -223,7 +222,6 @@ impl RendererInner {
             line_height,
             top_padding,
             font_size,
-            last_update: std::time::Instant::now(),
             scale_factor,
             speed_factor,
             top_center_row_occupied,
@@ -272,19 +270,17 @@ impl RendererInner {
             }
         }
     }
-    pub fn update(&mut self) {
+    pub fn update(&mut self, time_milis: f64) {
         if self.paused {
             return;
         }
 
+        let delta_time = (time_milis - self.video_time) as f32;
+        self.video_time = time_milis;
+
         for next_danmaku in self.danmaku_queue.pop_to_time(self.video_time) {
             self.add_text(next_danmaku);
         }
-
-        let now = std::time::Instant::now();
-        let delta_time = now.duration_since(self.last_update).as_millis_f32();
-        self.last_update = now;
-        self.video_time += delta_time as f64 * self.video_speed;
 
         for text in self.scroll_danmaku.iter_mut() {
             text.x += text.velocity_x * delta_time * self.speed_factor as f32;
