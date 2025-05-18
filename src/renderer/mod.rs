@@ -98,4 +98,12 @@ impl Renderer {
     pub fn set_max_rows(&mut self, max_rows: usize) {
         self.0.scroll_max_rows = max_rows;
     }
+
+    pub fn set_top_center_max_lines(&mut self, max_lines: usize) {
+        self.0.top_center_max_rows = max_lines;
+    }
+
+    pub fn set_bottom_center_max_lines(&mut self, max_lines: usize) {
+        self.0.bottom_center_max_rows = max_lines;
+    }
 }

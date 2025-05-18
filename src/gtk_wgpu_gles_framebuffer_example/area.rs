@@ -27,8 +27,8 @@ mod imp {
         pub speed_factor: RefCell<f64>,
         #[property(get, set = Self::set_row_spacing)]
         pub row_spacing: RefCell<u32>,
-        #[property(get, set = Self::set_max_rows)]
-        pub max_rows: RefCell<u32>,
+        #[property(get, set = Self::set_max_lines)]
+        pub max_lines: RefCell<u32>,
         #[property(get, set = Self::set_top_padding)]
         pub top_padding: RefCell<u32>,
         #[property(get, set = Self::set_paused)]
@@ -37,6 +37,10 @@ mod imp {
         pub time_milis: RefCell<f64>,
         #[property(get, set = Self::set_font_name)]
         pub font_name: RefCell<String>,
+        #[property(get, set = Self::set_bottom_center_max_lines)]
+        pub bottom_center_max_lines: RefCell<u32>,
+        #[property(get, set = Self::set_top_center_max_lines)]
+        pub top_center_max_lines: RefCell<u32>,
 
         #[property(get, set)]
         pub enable_danmaku: RefCell<bool>,
@@ -166,10 +170,28 @@ mod imp {
             }
         }
 
-        fn set_max_rows(&self, max_rows: u32) {
-            self.max_rows.replace(max_rows);
+        fn set_max_lines(&self, max_lines: u32) {
+            self.max_lines.replace(max_lines);
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
-                renderer.danmaku_renderer.set_max_rows(max_rows as usize);
+                renderer.danmaku_renderer.set_max_rows(max_lines as usize);
+            }
+        }
+
+        fn set_bottom_center_max_lines(&self, max_lines: u32) {
+            self.bottom_center_max_lines.replace(max_lines);
+            if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                renderer
+                    .danmaku_renderer
+                    .set_bottom_center_max_lines(max_lines as usize);
+            }
+        }
+
+        fn set_top_center_max_lines(&self, max_lines: u32) {
+            self.top_center_max_lines.replace(max_lines);
+            if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
+                renderer
+                    .danmaku_renderer
+                    .set_top_center_max_lines(max_lines as usize);
             }
         }
 
