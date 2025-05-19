@@ -80,6 +80,7 @@ pub struct RendererInner {
 }
 
 const SCROLL_DURATION_MS: f32 = 8000.0;
+const RESET_DELTA_MS: f32 = 1000.0;
 
 impl RendererInner {
     pub fn add_scroll_danmaku(
@@ -277,6 +278,11 @@ impl RendererInner {
 
         let delta_time = (time_milis - self.video_time) as f32;
         self.video_time = time_milis;
+
+        if delta_time > RESET_DELTA_MS {
+            self.danmaku_queue.reset_time(time_milis);
+            return;
+        }
 
         for next_danmaku in self.danmaku_queue.pop_to_time(self.video_time) {
             self.add_text(next_danmaku);
