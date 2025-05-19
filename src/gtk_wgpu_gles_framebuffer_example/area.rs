@@ -304,12 +304,20 @@ impl DanmakwArea {
     pub fn stop_rendering(&self) {
         if let Some(id) = self.imp().get_render_loop_callback_id() {
             id.remove();
+
+            self.clear();
         }
     }
 
     pub fn set_danmaku(&self, danmaku: Vec<crate::Danmaku>) {
         if let Some(renderer) = self.imp().renderer.borrow_mut().as_mut() {
             renderer.danmaku_renderer.init(danmaku);
+        }
+    }
+
+    pub fn clear(&self) {
+        if let Some(renderer) = self.imp().renderer.borrow_mut().as_mut() {
+            renderer.danmaku_renderer.clear();
         }
     }
 }
