@@ -279,7 +279,7 @@ impl RendererInner {
         let delta_time = (time_milis - self.video_time) as f32;
         self.video_time = time_milis;
 
-        if delta_time > RESET_DELTA_MS {
+        if delta_time.abs() > RESET_DELTA_MS {
             self.danmaku_queue.reset_time(time_milis);
             return;
         }
