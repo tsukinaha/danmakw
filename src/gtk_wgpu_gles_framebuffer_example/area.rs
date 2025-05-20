@@ -76,7 +76,6 @@ mod imp {
             );
 
             self.obj().add_css_class("danmakw-area");
-            self.obj().set_allowed_apis(GLAPI::GLES);
 
             load_epoxy();
         }

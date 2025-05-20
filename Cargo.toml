@@ -18,7 +18,7 @@ rand = "0.9"
 glyphon = { git = "https://github.com/tsukinaha/glyphon.git" }
 quick-xml = { version = "0.37.4", features = ["serialize"] }
 thiserror = "2.0"
-ash = "0.38"
+ash = "0.32"
 epoxy = { version = "0.1", optional = true }
 libloading = "0.8.7"
 gtk = { version = "0.9", package = "gtk4", features = ["v4_18"], optional = true}
