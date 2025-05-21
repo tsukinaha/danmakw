@@ -60,6 +60,8 @@ mod imp {
     impl ObjectImpl for DanmakwArea {
         fn constructed(&self) {
             self.parent_constructed();
+            self.obj().set_has_stencil_buffer(true);
+            self.obj().set_has_depth_buffer(true);
 
             let provider = gtk::CssProvider::new();
             provider.load_from_string(
@@ -86,7 +88,7 @@ mod imp {
             self.parent_realize();
 
             if let Some(e) = self.obj().error() {
-                panic!("Failed to create GLArea: {e}");
+                eprintln!("Failed to create GLArea: {e}");
             }
 
             self.obj().make_current();

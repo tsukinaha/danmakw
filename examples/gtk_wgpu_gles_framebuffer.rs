@@ -48,6 +48,7 @@ pub fn build_ui(application: &gtk::Application) {
             glib::timeout_future_seconds(1).await;
             let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
             area.set_danmaku(danmakus);
+            area.set_enable_danmaku(true);
             area.start_rendering(Timer::new());
         }
     ));
