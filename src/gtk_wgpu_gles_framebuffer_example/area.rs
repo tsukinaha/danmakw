@@ -306,7 +306,7 @@ impl DanmakwArea {
         if let Some(id) = self.imp().get_render_loop_callback_id() {
             id.remove();
 
-            self.clear();
+            self.clear_danmaku();
         }
     }
 
@@ -316,7 +316,7 @@ impl DanmakwArea {
         }
     }
 
-    pub fn clear(&self) {
+    pub fn clear_danmaku(&self) {
         if let Some(renderer) = self.imp().renderer.borrow_mut().as_mut() {
             renderer.danmaku_renderer.clear();
         }
