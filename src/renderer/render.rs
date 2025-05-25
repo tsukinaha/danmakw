@@ -191,7 +191,7 @@ impl RendererInner {
         let scroll_max_rows = 20;
         let top_center_max_rows = 10;
         let bottom_center_max_rows = 10;
-        let line_height = 30.0 * scale_factor as f32;
+        let line_height = 34.0 * scale_factor as f32;
         let top_padding = 10.0 * scale_factor as f32;
         let font_size = 24.0 * scale_factor as f32;
         let speed_factor = 1.0;
