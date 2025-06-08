@@ -11,7 +11,6 @@ use super::Timer;
 mod imp {
     use std::panic;
 
-    use gdk::GLAPI;
     use gtk::TickCallbackId;
 
     use crate::gtk_wgpu_gles_framebuffer_example::DanmakwAreaRenderer;

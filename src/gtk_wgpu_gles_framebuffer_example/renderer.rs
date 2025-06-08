@@ -105,7 +105,7 @@ impl Renderer {
             wgt::TextureFormat::Rgba8UnormSrgb,
         );
 
-        texture_hal.inner = TextureInner::ExternalGlFrameBuffer { inner: fbo };
+        texture_hal.inner = TextureInner::ExternalNativeFramebuffer { inner: fbo };
 
         let texture = unsafe {
             device.create_texture_from_hal::<api::Gles>(
