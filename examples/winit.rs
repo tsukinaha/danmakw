@@ -157,7 +157,7 @@ impl winit::application::ApplicationHandler for Application {
             }
             WindowEvent::RedrawRequested => {
                 let instant = std::time::Instant::now();
-                renderer.update();
+                renderer.update(1000.0 / 165.0);
 
                 match surface.get_current_texture() {
                     Ok(frame) => {

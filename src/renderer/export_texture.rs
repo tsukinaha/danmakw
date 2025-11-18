@@ -29,27 +29,25 @@ impl ExportTexture {
 
         let mut fd = None;
         unsafe {
-            device.as_hal::<hal::api::Vulkan, _, _>(|device| {
-                if let Some(device) = device {
-                    if let Some(instance) = instance.as_hal::<hal::api::Vulkan>() {
-                        let raw_instance = instance.shared_instance().raw_instance();
+            if let Some(device) = device.as_hal::<hal::api::Vulkan>() {
+                if let Some(instance) = instance.as_hal::<hal::api::Vulkan>() {
+                    let raw_instance = instance.shared_instance().raw_instance();
 
-                        let handle_info = vk::MemoryGetFdInfoKHR::default()
-                            .handle_type(vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT)
-                            .memory(device_memory);
+                    let handle_info = vk::MemoryGetFdInfoKHR::default()
+                        .handle_type(vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT)
+                        .memory(device_memory);
 
-                        let ash_device =
-                            ash::Device::load(raw_instance.fp_v1_0(), device.raw_device().handle());
-                        let fd_device =
-                            ash::khr::external_memory_fd::Device::new(raw_instance, &ash_device);
-                        // get_memory_fd is slow. ~2ms avg
+                    let ash_device =
+                        ash::Device::load(raw_instance.fp_v1_0(), device.raw_device().handle());
+                    let fd_device =
+                        ash::khr::external_memory_fd::Device::new(raw_instance, &ash_device);
+                    // get_memory_fd is slow. ~2ms avg
 
-                        let raw_fd = fd_device.get_memory_fd(&handle_info).unwrap();
+                    let raw_fd = fd_device.get_memory_fd(&handle_info).unwrap();
 
-                        fd = Some(raw_fd as RawFd);
-                    }
+                    fd = Some(raw_fd as RawFd);
                 }
-            })
+            }
         };
 
         let pixels_per_block = alignment / 4;
@@ -74,11 +72,9 @@ impl Drop for ExportTexture {
         // todo: cleanup rawfd. or see if don't need to.
         self.texture.destroy();
         unsafe {
-            self.device.as_hal::<hal::api::Vulkan, _, _>(|device| {
-                if let Some(device) = device {
-                    device.raw_device().free_memory(self.device_memory, None);
-                }
-            })
+            if let Some(device) = self.device.as_hal::<hal::api::Vulkan>() {
+                device.raw_device().free_memory(self.device_memory, None);
+            }
         };
     }
 }
@@ -112,29 +108,27 @@ fn create_image(device: &wgpu::Device, size: wgpu::Extent3d) -> (vk::Image, vk::
     let mut raw_image = None;
 
     unsafe {
-        device.as_hal::<hal::api::Vulkan, _, _>(|device| {
-            if let Some(device) = device {
-                let raw_device = device.raw_device();
-                let image = raw_device.create_image(&image_create_info, None).unwrap();
-                let mem_req = raw_device.get_image_memory_requirements(image);
+        if let Some(device) = device.as_hal::<hal::api::Vulkan>() {
+            let raw_device = device.raw_device();
+            let image = raw_device.create_image(&image_create_info, None).unwrap();
+            let mem_req = raw_device.get_image_memory_requirements(image);
 
-                let mut export_mem_alloc_info = vk::ExportMemoryAllocateInfo::default()
-                    .handle_types(vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT);
+            let mut export_mem_alloc_info = vk::ExportMemoryAllocateInfo::default()
+                .handle_types(vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT);
 
-                let mem_alloc_info = vk::MemoryAllocateInfo::default()
-                    .push_next(&mut export_mem_alloc_info)
-                    .allocation_size(mem_req.size);
+            let mem_alloc_info = vk::MemoryAllocateInfo::default()
+                .push_next(&mut export_mem_alloc_info)
+                .allocation_size(mem_req.size);
 
-                let device_memory = raw_device.allocate_memory(&mem_alloc_info, None).unwrap();
+            let device_memory = raw_device.allocate_memory(&mem_alloc_info, None).unwrap();
 
-                raw_device
-                    .bind_image_memory(image, device_memory, 0)
-                    .expect("failed to bind image memory");
+            raw_device
+                .bind_image_memory(image, device_memory, 0)
+                .expect("failed to bind image memory");
 
-                raw_image = Some(image);
-                allocation = Some(device_memory);
-            }
-        })
+            raw_image = Some(image);
+            allocation = Some(device_memory);
+        }
     };
 
     (raw_image.unwrap(), allocation.unwrap())
@@ -143,12 +137,10 @@ fn create_image(device: &wgpu::Device, size: wgpu::Extent3d) -> (vk::Image, vk::
 fn image_alignment(image: &vk::Image, device: &wgpu::Device) -> vk::DeviceSize {
     let mut mem_reqs = None;
     unsafe {
-        device.as_hal::<hal::api::Vulkan, _, _>(|device| {
-            if let Some(device) = device {
-                let raw_device = device.raw_device();
-                mem_reqs = Some(raw_device.get_image_memory_requirements(*image));
-            }
-        })
+        if let Some(device) = device.as_hal::<hal::api::Vulkan>() {
+            let raw_device = device.raw_device();
+            mem_reqs = Some(raw_device.get_image_memory_requirements(*image));
+        }
     };
 
     mem_reqs.unwrap().alignment
@@ -160,21 +152,26 @@ fn upgrade_raw_image_to_wgpu(
     let format = wgpu::TextureFormat::Rgba8Unorm;
 
     let hal_texture = unsafe {
-        <hal::api::Vulkan as hal::Api>::Device::texture_from_raw(
-            image,
-            &wgpu::hal::TextureDescriptor {
-                label: Some("imported image"),
-                size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format,
-                view_formats: vec![],
-                usage: wgpu::TextureUses::empty(),
-                memory_flags: wgpu::hal::MemoryFlags::empty(),
-            },
-            None,
-        )
+        if let Some(device) = device.as_hal::<hal::api::Vulkan>() {
+            device.texture_from_raw(
+                image,
+                &wgpu::hal::TextureDescriptor {
+                    label: Some("imported image"),
+                    size,
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format,
+                    view_formats: vec![],
+                    usage: wgpu::TextureUses::empty(),
+                    memory_flags: wgpu::hal::MemoryFlags::empty(),
+                },
+                None,
+            )
+        } else {
+            // FIXME: is this really unreachable?
+            unreachable!()
+        }
     };
 
     unsafe {

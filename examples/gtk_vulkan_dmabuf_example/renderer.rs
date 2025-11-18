@@ -54,8 +54,8 @@ impl Renderer {
     }
 
     #[cfg(feature = "export-texture")]
-    pub async fn render(&mut self, width: u32, height: u32) {
-        self.danmaku_renderer.update();
+    pub async fn render(&mut self, width: u32, height: u32, time_milis: f64) {
+        self.danmaku_renderer.update(time_milis);
         let frame = self
             .danmaku_renderer
             .render_to_export_texture(&self.device, &self.instance, &self.queue, width, height)
@@ -107,54 +107,52 @@ fn create_device_queue(
     let mut open_device = None;
     let all_features = adapter.features() | required_features;
     unsafe {
-        adapter.as_hal::<hal::api::Vulkan, _, _>(|adapter| {
-            if let Some(adapter) = adapter {
-                let raw = adapter.raw_physical_device();
+        if let Some(adapter) = adapter.as_hal::<hal::api::Vulkan>() {
+            let raw = adapter.raw_physical_device();
 
-                let mut enabled_extensions = adapter.required_device_extensions(all_features);
-                enabled_extensions.push(vk::EXT_EXTERNAL_MEMORY_DMA_BUF_NAME);
-                enabled_extensions.push(vk::KHR_EXTERNAL_MEMORY_FD_NAME);
-                enabled_extensions.push(vk::KHR_EXTERNAL_MEMORY_NAME);
-                enabled_extensions.push(vk::EXT_IMAGE_DRM_FORMAT_MODIFIER_NAME);
+            let mut enabled_extensions = adapter.required_device_extensions(all_features);
+            enabled_extensions.push(vk::EXT_EXTERNAL_MEMORY_DMA_BUF_NAME);
+            enabled_extensions.push(vk::KHR_EXTERNAL_MEMORY_FD_NAME);
+            enabled_extensions.push(vk::KHR_EXTERNAL_MEMORY_NAME);
+            enabled_extensions.push(vk::EXT_IMAGE_DRM_FORMAT_MODIFIER_NAME);
 
-                let mut enabled_phd_features =
-                    adapter.physical_device_features(&enabled_extensions, all_features);
+            let mut enabled_phd_features =
+                adapter.physical_device_features(&enabled_extensions, all_features);
 
-                let queue_create_info = vk::DeviceQueueCreateInfo::default()
-                    .queue_family_index(0)
-                    .queue_priorities(&[1.0]);
-                let queue_family_infos = [queue_create_info];
+            let queue_create_info = vk::DeviceQueueCreateInfo::default()
+                .queue_family_index(0)
+                .queue_priorities(&[1.0]);
+            let queue_family_infos = [queue_create_info];
 
-                let str_pointers = enabled_extensions
-                    .iter()
-                    .map(|&s| s.as_ptr())
-                    .collect::<Vec<_>>();
+            let str_pointers = enabled_extensions
+                .iter()
+                .map(|&s| s.as_ptr())
+                .collect::<Vec<_>>();
 
-                let pre_info = vk::DeviceCreateInfo::default()
-                    .queue_create_infos(&queue_family_infos)
-                    .enabled_extension_names(&str_pointers);
+            let pre_info = vk::DeviceCreateInfo::default()
+                .queue_create_infos(&queue_family_infos)
+                .enabled_extension_names(&str_pointers);
 
-                let device_create_info = enabled_phd_features.add_to_device_create(pre_info);
+            let device_create_info = enabled_phd_features.add_to_device_create(pre_info);
 
-                let raw_device = instance
-                    .create_device(raw, &device_create_info, None)
-                    .expect("Failed to create device");
+            let raw_device = instance
+                .create_device(raw, &device_create_info, None)
+                .expect("Failed to create device");
 
-                open_device = Some(
-                    adapter
-                        .device_from_raw(
-                            raw_device,
-                            None,
-                            &enabled_extensions,
-                            required_features,
-                            &wgpu::MemoryHints::Performance,
-                            0,
-                            0,
-                        )
-                        .expect("Failed to create adapter"),
-                );
-            }
-        })
+            open_device = Some(
+                adapter
+                    .device_from_raw(
+                        raw_device,
+                        None,
+                        &enabled_extensions,
+                        required_features,
+                        &wgpu::MemoryHints::Performance,
+                        0,
+                        0,
+                    )
+                    .expect("Failed to create adapter"),
+            );
+        }
     };
 
     let (device, queue) = unsafe {
@@ -167,6 +165,7 @@ fn create_device_queue(
                     label: None,
                     memory_hints: wgpu::MemoryHints::Performance,
                     trace: wgpu::Trace::Off,
+                    experimental_features: wgpu::ExperimentalFeatures::disabled(),
                 },
             )
             .expect("Failed to create device and queue from hal")
