@@ -419,7 +419,7 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
 
-        device.poll(wgpu::PollType::Wait).unwrap();
+        device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
 
         Ok(())
     }
@@ -541,7 +541,7 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
 
-        device.poll(wgpu::PollType::Wait).unwrap();
+        device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
 
         let texture_buf = ExportTextureBuf {
             fd: texture.fd,
