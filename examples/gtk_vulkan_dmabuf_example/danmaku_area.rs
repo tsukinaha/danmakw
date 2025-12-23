@@ -256,9 +256,7 @@ impl DanmakuArea {
     }
 
     fn start_render_loop(&self) {
-        // FIXME: i'm not sure here
-        let time_milis = self.time_milis();
-
+        
         glib::spawn_future_local(glib::clone!(
             #[weak(rename_to = obj)]
             self,
@@ -278,7 +276,7 @@ impl DanmakuArea {
                                 continue;
                             }
                             let instant = std::time::Instant::now();
-                            renderer.render(width, height, time_milis).await;
+                            renderer.render(width, height, obj.time_milis()).await;
                             dbg!(instant.elapsed());
                         }
                         RendererEvent::ChangeProperties(p) => match p {
