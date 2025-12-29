@@ -1,4 +1,3 @@
-#![feature(duration_millis_float)]
 mod danmaku;
 mod renderer;
 
