@@ -7,6 +7,6 @@ pub trait SortByTime {
 
 impl SortByTime for Vec<Danmaku> {
     fn sort_by_time(&mut self) {
-        self.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
+        self.sort_by(|a, b| a.start.total_cmp(&b.start));
     }
 }

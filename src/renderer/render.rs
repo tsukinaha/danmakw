@@ -419,7 +419,7 @@ impl RendererInner {
 
         queue.submit(Some(encoder.finish()));
 
-        device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
+        device.poll(wgpu::PollType::Poll).unwrap();
 
         Ok(())
     }
