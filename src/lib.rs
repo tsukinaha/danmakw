@@ -1,6 +1,8 @@
 mod danmaku;
 mod renderer;
+mod gtkgl;
 
+pub use gtkgl::*;
 pub use danmaku::{
     CenterDanmaku,
     Color,
@@ -9,22 +11,10 @@ pub use danmaku::{
     DanmakuQueue,
     ScrollingDanmaku,
 };
-
-#[cfg(feature = "export-texture")]
-pub use renderer::ExportTexture;
-
-#[cfg(feature = "export-texture")]
-pub use renderer::ExportTextureBuf;
-
 pub use renderer::Renderer;
 
-#[cfg(feature = "gtk4-gles")]
-mod gtk_wgpu_gles_framebuffer_example;
-#[cfg(feature = "gtk4-gles")]
-use gdk::glib::types::StaticTypeExt;
-#[cfg(feature = "gtk4-gles")]
-pub use gtk_wgpu_gles_framebuffer_example::*;
-#[cfg(feature = "gtk4-gles")]
+use gtk::prelude::*;
+
 pub fn init() {
     DanmakwArea::ensure_type();
 }

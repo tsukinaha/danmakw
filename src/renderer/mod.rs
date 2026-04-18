@@ -1,12 +1,5 @@
-#[cfg(feature = "export-texture")]
-mod export_texture;
 mod render;
 
-#[cfg(feature = "export-texture")]
-pub use export_texture::{
-    ExportTexture,
-    ExportTextureBuf,
-};
 use render::RendererInner;
 use wgpu::TextureFormat;
 
@@ -56,15 +49,6 @@ impl Renderer {
         width: u32, height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
         self.0.render(device, queue, view, width, height)
-    }
-
-    #[cfg(feature = "export-texture")]
-    pub fn render_to_export_texture(
-        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue,
-        width: u32, height: u32,
-    ) -> Result<ExportTextureBuf, wgpu::SurfaceError> {
-        self.0
-            .render_to_export_texture(device, instance, queue, width, height)
     }
 
     pub fn set_paused(&mut self, paused: bool) {

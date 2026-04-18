@@ -25,20 +25,44 @@ use glyphon::{
     Weight,
 };
 use wgpu::{
+    BindGroup,
+    BindGroupDescriptor,
+    BindGroupEntry,
+    BindGroupLayout,
+    BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry,
+    BindingResource,
+    BindingType,
+    BlendState,
+    ColorTargetState,
+    ColorWrites,
     CommandEncoderDescriptor,
+    FragmentState,
     LoadOp,
     MultisampleState,
     Operations,
+    PipelineCompilationOptions,
+    PipelineLayoutDescriptor,
+    PrimitiveState,
     RenderPassColorAttachment,
     RenderPassDescriptor,
+    RenderPipeline,
+    RenderPipelineDescriptor,
+    Sampler,
+    SamplerBindingType,
+    SamplerDescriptor,
+    ShaderModuleDescriptor,
+    ShaderSource,
+    ShaderStages,
+    TextureDescriptor,
+    TextureDimension,
     TextureFormat,
+    TextureSampleType,
+    TextureUsages,
     TextureView,
-};
-
-#[cfg(feature = "export-texture")]
-use super::export_texture::{
-    ExportTexture,
-    ExportTextureBuf,
+    TextureViewDescriptor,
+    TextureViewDimension,
+    VertexState,
 };
 
 pub struct RendererInner {
@@ -51,6 +75,11 @@ pub struct RendererInner {
     viewport: glyphon::Viewport,
     atlas: glyphon::TextAtlas,
     text_renderer: glyphon::TextRenderer,
+    offscreen_format: TextureFormat,
+    offscreen_layer: Option<OffscreenLayer>,
+    composite_sampler: Sampler,
+    composite_bind_group_layout: BindGroupLayout,
+    composite_pipeline: RenderPipeline,
 
     pub paused: bool,
 
@@ -73,14 +102,24 @@ pub struct RendererInner {
     pub scale_factor: f64,
     pub speed_factor: f64,
 
-    #[cfg(feature = "export-texture")]
-    pub texture: Option<ExportTexture>,
     pub texture_view: Option<TextureView>,
     pub shadow: TextShadow,
 }
 
+
+
+struct OffscreenLayer {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    bind_group: BindGroup,
+    width: u32,
+    height: u32,
+}
+
 const SCROLL_DURATION_MS: f32 = 8000.0;
+const CENTER_DURATION_MS: f32 = 5000.0;
 const RESET_DELTA_MS: f32 = 1000.0;
+const COMPOSITE_SHADER: &str = include_str!("shader.wgsl");
 
 impl RendererInner {
     pub fn add_scroll_danmaku(
@@ -149,7 +188,7 @@ impl RendererInner {
             buffer: text_buffer,
             width: text_width,
             row: target_row,
-            remaining_time: 5000.0,
+            remaining_time: CENTER_DURATION_MS,
         });
     }
 
@@ -171,12 +210,135 @@ impl RendererInner {
             buffer: text_buffer,
             width: text_width,
             row: target_row,
-            remaining_time: 5000.0,
+            remaining_time: CENTER_DURATION_MS,
         });
     }
 }
 
 impl RendererInner {
+    fn create_composite_resources(
+        device: &wgpu::Device, format: TextureFormat,
+    ) -> (Sampler, BindGroupLayout, RenderPipeline) {
+        let sampler = device.create_sampler(&SamplerDescriptor {
+            label: Some("Danmaku Composite Sampler"),
+            ..Default::default()
+        });
+
+        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Danmaku Composite Bind Group Layout"),
+            entries: &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Texture {
+                        sample_type: TextureSampleType::Float {
+                            filterable: true,
+                        },
+                        view_dimension: TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+
+        let shader = device.create_shader_module(ShaderModuleDescriptor {
+            label: Some("Danmaku Composite Shader"),
+            source: ShaderSource::Wgsl(COMPOSITE_SHADER.into()),
+        });
+
+        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("Danmaku Composite Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("Danmaku Composite Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                compilation_options: PipelineCompilationOptions::default(),
+                buffers: &[],
+            },
+            fragment: Some(FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: PipelineCompilationOptions::default(),
+                targets: &[Some(ColorTargetState {
+                    format,
+                    blend: Some(BlendState::ALPHA_BLENDING),
+                    write_mask: ColorWrites::ALL,
+                })],
+            }),
+            primitive: PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: MultisampleState::default(),
+            multiview: None,
+            cache: None,
+        });
+
+        (sampler, bind_group_layout, pipeline)
+    }
+
+    fn ensure_offscreen_layer(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        let needs_recreate = self
+            .offscreen_layer
+            .as_ref()
+            .is_none_or(|layer| layer.width != width || layer.height != height);
+
+        if !needs_recreate {
+            return;
+        }
+
+        let texture = device.create_texture(&TextureDescriptor {
+            label: Some("Danmaku Offscreen Texture"),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: self.offscreen_format,
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+
+        let view = texture.create_view(&TextureViewDescriptor::default());
+
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("Danmaku Composite Bind Group"),
+            layout: &self.composite_bind_group_layout,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&view),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Sampler(&self.composite_sampler),
+                },
+            ],
+        });
+
+        self.offscreen_layer = Some(OffscreenLayer {
+            texture,
+            view,
+            bind_group,
+            width,
+            height,
+        });
+    }
+
     pub fn new(
         device: &wgpu::Device, queue: &wgpu::Queue, format: TextureFormat, scale_factor: f64,
     ) -> Self {
@@ -187,18 +349,20 @@ impl RendererInner {
         let mut atlas = TextAtlas::new(device, queue, &cache, format);
         let text_renderer =
             TextRenderer::new(&mut atlas, device, MultisampleState::default(), None);
+        let (composite_sampler, composite_bind_group_layout, composite_pipeline) =
+            Self::create_composite_resources(device, format);
 
         let scroll_max_rows = 20;
         let top_center_max_rows = 10;
         let bottom_center_max_rows = 10;
-        let line_height = 34.0 * scale_factor as f32;
+        let font_size = 28.0 * scale_factor as f32;
+        let line_height = font_size * 1.4;
         let top_padding = 10.0 * scale_factor as f32;
-        let font_size = 24.0 * scale_factor as f32;
         let speed_factor = 1.0;
         let spacing = 20.0 * scale_factor as f32;
         let shadow = TextShadow {
             shadow_intensity: 0.3,
-            shadow_radius: 3.0,
+            shadow_radius: 5.0,
         };
 
         let top_center_row_occupied = vec![false; top_center_max_rows];
@@ -214,6 +378,11 @@ impl RendererInner {
             viewport,
             atlas,
             text_renderer,
+            offscreen_format: format,
+            offscreen_layer: None,
+            composite_sampler,
+            composite_bind_group_layout,
+            composite_pipeline,
             scroll_danmaku: Vec::new(),
             top_center_danmaku: Vec::new(),
             bottom_center_danmaku: Vec::new(),
@@ -230,8 +399,6 @@ impl RendererInner {
             paused: false,
             spacing,
             texture_view: None,
-            #[cfg(feature = "export-texture")]
-            texture: None,
             shadow,
         }
     }
@@ -271,6 +438,7 @@ impl RendererInner {
             }
         }
     }
+
     pub fn update(&mut self, time_milis: f64) {
         if self.paused {
             return;
@@ -333,6 +501,20 @@ impl RendererInner {
         &mut self, device: &wgpu::Device, queue: &wgpu::Queue, view: &wgpu::TextureView,
         width: u32, height: u32,
     ) -> Result<(), wgpu::SurfaceError> {
+        if width == 0 || height == 0 {
+            return Ok(());
+        }
+
+        self.viewport.update(queue, Resolution { width, height });
+        self.ensure_offscreen_layer(device, width, height);
+
+        let bounds = TextBounds {
+            left: 0,
+            top: 0,
+            right: width as i32,
+            bottom: height as i32,
+        };
+
         let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
             let top_y = self.top_padding + (text.row as f32 * self.line_height);
             let Color { r, g, b, a } = text.danmaku.color;
@@ -341,7 +523,7 @@ impl RendererInner {
                 left: text.x,
                 top: top_y,
                 scale: 1.0,
-                bounds: TextBounds::default(),
+                bounds,
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
                 shadow: Some(self.shadow),
@@ -355,7 +537,7 @@ impl RendererInner {
                 left: (width as f32 - text.width) / 2.0,
                 top: self.top_padding + (text.row as f32 * self.line_height),
                 scale: 1.0,
-                bounds: TextBounds::default(),
+                bounds,
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
                 shadow: Some(self.shadow),
@@ -369,7 +551,7 @@ impl RendererInner {
                 left: (width as f32 - text.width) / 2.0,
                 top: height as f32 - self.top_padding - ((text.row + 1) as f32 * self.line_height),
                 scale: 1.0,
-                bounds: TextBounds::default(),
+                bounds,
                 default_color: glyphon::Color::rgba(r, g, b, a),
                 custom_glyphs: &[],
                 shadow: Some(self.shadow),
@@ -392,12 +574,38 @@ impl RendererInner {
             )
             .unwrap();
 
+        let offscreen_layer = self.offscreen_layer.as_ref().unwrap();
+        let _ = &offscreen_layer.texture;
+
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("Render Encoder"),
         });
+
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("Render Pass"),
+                label: Some("Danmaku Offscreen Render Pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &offscreen_layer.view,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+            self.text_renderer
+                .render(&self.atlas, &self.viewport, &mut pass)
+                .unwrap();
+        }
+
+        {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Danmaku Composite Pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view,
                     resolve_target: None,
@@ -412,143 +620,15 @@ impl RendererInner {
                 occlusion_query_set: None,
             });
 
-            self.text_renderer
-                .render(&self.atlas, &self.viewport, &mut pass)
-                .unwrap();
+            pass.set_pipeline(&self.composite_pipeline);
+            pass.set_bind_group(0, &offscreen_layer.bind_group, &[]);
+            pass.draw(0..3, 0..1);
         }
 
         queue.submit(Some(encoder.finish()));
 
-        device.poll(wgpu::PollType::Poll).unwrap();
+        _ = device.poll(wgpu::PollType::Poll);
 
         Ok(())
-    }
-}
-
-#[cfg(feature = "export-texture")]
-impl RendererInner {
-    pub fn render_to_export_texture(
-        &mut self, device: &wgpu::Device, instance: &wgpu::Instance, queue: &wgpu::Queue,
-        width: u32, height: u32,
-    ) -> Result<ExportTextureBuf, wgpu::SurfaceError> {
-        let target_size = wgpu::Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        };
-
-        if self
-            .texture
-            .as_ref()
-            .is_none_or(|tex| tex.size != target_size)
-        {
-            let new_texture = ExportTexture::new(device, instance, target_size);
-            let new_view = new_texture
-                .texture
-                .create_view(&wgpu::TextureViewDescriptor::default());
-
-            self.texture = Some(new_texture);
-            self.texture_view = Some(new_view);
-            self.viewport.update(queue, Resolution { width, height });
-        }
-
-        let texture = self.texture.as_ref().unwrap();
-
-        let scroll_areas = self.scroll_danmaku.iter_mut().map(|text| {
-            let top_y = self.top_padding + (text.row as f32 * self.line_height);
-            let Color { r, g, b, a } = text.danmaku.color;
-            TextArea {
-                buffer: &mut text.buffer,
-                left: text.x,
-                top: top_y,
-                scale: 1.0,
-                bounds: TextBounds::default(),
-                default_color: glyphon::Color::rgba(r, g, b, a),
-                custom_glyphs: &[],
-                shadow: Some(self.shadow),
-            }
-        });
-
-        let top_center_areas = self.top_center_danmaku.iter_mut().map(|text| {
-            let Color { r, g, b, a } = text.danmaku.color;
-            TextArea {
-                buffer: &mut text.buffer,
-                left: (width as f32 - text.width) / 2.0,
-                top: self.top_padding + (text.row as f32 * self.line_height),
-                scale: 1.0,
-                bounds: TextBounds::default(),
-                default_color: glyphon::Color::rgba(r, g, b, a),
-                custom_glyphs: &[],
-                shadow: Some(self.shadow),
-            }
-        });
-
-        let bottom_center_areas = self.bottom_center_danmaku.iter_mut().map(|text| {
-            let Color { r, g, b, a } = text.danmaku.color;
-            TextArea {
-                buffer: &mut text.buffer,
-                left: (width as f32 - text.width) / 2.0,
-                top: height as f32 - self.top_padding - ((text.row + 1) as f32 * self.line_height),
-                scale: 1.0,
-                bounds: TextBounds::default(),
-                default_color: glyphon::Color::rgba(r, g, b, a),
-                custom_glyphs: &[],
-                shadow: Some(self.shadow),
-            }
-        });
-
-        let areas = scroll_areas
-            .chain(top_center_areas)
-            .chain(bottom_center_areas);
-
-        self.text_renderer
-            .prepare(
-                device,
-                queue,
-                &mut self.font_system,
-                &mut self.atlas,
-                &self.viewport,
-                areas,
-                &mut self.swash_cache,
-            )
-            .unwrap();
-
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
-            label: Some("Danmaku Render Encoder"),
-        });
-
-        {
-            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("Danmaku Render Pass"),
-                color_attachments: &[Some(RenderPassColorAttachment {
-                    view: self.texture_view.as_ref().unwrap(),
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-
-            self.text_renderer
-                .render(&self.atlas, &self.viewport, &mut pass)
-                .unwrap();
-        }
-
-        queue.submit(Some(encoder.finish()));
-
-        device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
-
-        let texture_buf = ExportTextureBuf {
-            fd: texture.fd,
-            row_stride: texture.row_stride,
-            size: texture.size,
-        };
-
-        Ok(texture_buf)
     }
 }

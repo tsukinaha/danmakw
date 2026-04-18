@@ -58,13 +58,11 @@ impl Renderer {
 
         let adapter = unsafe { instance.create_adapter_from_hal(exposed) };
 
-        // also need the nativeframebuffer here
         let fbo = unsafe {
             let ctx = glow::Context::from_loader_function(LOAD_FN);
             let id = NonZeroU32::new(ctx.get_parameter_i32(glow::DRAW_FRAMEBUFFER_BINDING) as u32)
                 .expect("No GTK provided framebuffer binding");
             ctx.bind_framebuffer(glow::FRAMEBUFFER, None);
-            // the view will be created by glow after binding to the correct framebuffer;
             glow::NativeFramebuffer(id)
         };
 

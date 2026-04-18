@@ -13,7 +13,7 @@ mod imp {
 
     use gtk::TickCallbackId;
 
-    use crate::gtk_wgpu_gles_framebuffer_example::DanmakwAreaRenderer;
+    use crate::gtkgl::DanmakwAreaRenderer;
 
     use super::*;
 
