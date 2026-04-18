@@ -15,14 +15,14 @@ glyphon = { git = "https://github.com/tsukinaha/glyphon.git", version = "0.9.0" 
 thiserror = "2.0"
 epoxy = { version = "0.1"}
 libloading = "0.8.7"
-gtk = { version = "0.9", package = "gtk4", features = [
-  "v4_18",
+gtk = { version = "0.11", package = "gtk4", features = [
+  "v4_22",
 ] }
-gdk = { version = "0.9", package = "gdk4", features = [
-  "v4_18",
+gdk = { version = "0.11", package = "gdk4", features = [
+  "v4_22",
 ] }
-adw = { version = "0.7", package = "libadwaita", features = [
-  "v1_7",
+adw = { version = "0.9", package = "libadwaita", features = [
+  "v1_9",
 ]}
 flume = "0.11"
 once_cell = "1.21"
