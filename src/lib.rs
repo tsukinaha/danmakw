@@ -1,6 +1,7 @@
 mod danmaku;
 mod renderer;
 mod gtkgl;
+mod clock;
 
 pub use gtkgl::*;
 pub use danmaku::{
@@ -12,6 +13,7 @@ pub use danmaku::{
     ScrollingDanmaku,
 };
 pub use renderer::Renderer;
+pub use clock::DanmakuClock;
 
 use gtk::prelude::*;
 

@@ -133,9 +133,8 @@ impl Renderer {
     pub fn render(&mut self, width: u32, height: u32, time_milis: f64) {
         self.danmaku_renderer.update(time_milis);
 
-        self.danmaku_renderer
-            .render(&self.device, &self.queue, &self.view, width, height)
-            .unwrap();
+        let _ = self.danmaku_renderer
+            .render(&self.device, &self.queue, &self.view, width, height);
     }
 
     pub fn init(&mut self, danmaku: Vec<crate::Danmaku>) {

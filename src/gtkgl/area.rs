@@ -6,23 +6,21 @@ use gtk::{
 };
 use std::cell::RefCell;
 
-use super::Timer;
-
 mod imp {
     use std::panic;
 
     use gtk::TickCallbackId;
 
-    use crate::gtkgl::DanmakwAreaRenderer;
+    use crate::{DanmakuClock, gtkgl::DanmakwAreaRenderer};
 
     use super::*;
 
-    #[derive(Default, glib::Properties)]
+    #[derive(glib::Properties)]
     #[properties(wrapper_type = super::DanmakwArea)]
     pub struct DanmakwArea {
         #[property(get, set = Self::set_font_size)]
         pub font_size: RefCell<u32>,
-        #[property(get, set = Self::set_speed_factor)]
+        #[property(get, set = Self::set_speed_factor, default = 1.0)]
         pub speed_factor: RefCell<f64>,
         #[property(get, set = Self::set_row_spacing)]
         pub row_spacing: RefCell<u32>,
@@ -32,8 +30,6 @@ mod imp {
         pub top_padding: RefCell<u32>,
         #[property(get, set = Self::set_paused)]
         pub paused: RefCell<bool>,
-        #[property(get, set = Self::set_time_milis)]
-        pub time_milis: RefCell<f64>,
         #[property(get, set = Self::set_font_name)]
         pub font_name: RefCell<String>,
         #[property(get, set = Self::set_bottom_center_max_lines)]
@@ -44,8 +40,30 @@ mod imp {
         #[property(get, set)]
         pub enable_danmaku: RefCell<bool>,
 
+        pub clock: RefCell<Option<DanmakuClock>>,
+
         pub renderer: RefCell<Option<DanmakwAreaRenderer>>,
         render_loop_callback_id: RefCell<Option<TickCallbackId>>,
+    }
+
+    impl Default for DanmakwArea {
+        fn default() -> Self {
+            Self {
+                font_size: RefCell::new(25),
+                speed_factor: RefCell::new(1.0),
+                row_spacing: RefCell::new(5),
+                max_lines: RefCell::new(10),
+                top_padding: RefCell::new(10),
+                paused: RefCell::new(false),
+                font_name: RefCell::new(String::new()),
+                bottom_center_max_lines: RefCell::new(5),
+                top_center_max_lines: RefCell::new(5),
+                enable_danmaku: RefCell::new(true),
+                clock: RefCell::new(None),
+                renderer: RefCell::new(None),
+                render_loop_callback_id: RefCell::new(None),
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -99,7 +117,7 @@ mod imp {
         }
 
         fn unrealize(&self) {
-            self.obj().stop_rendering();
+            self.obj().pause();
             self.renderer.replace(None);
             self.parent_unrealize();
         }
@@ -115,13 +133,22 @@ mod imp {
         fn render(&self, _context: &gdk::GLContext) -> glib::Propagation {
             let (width, height) = self.get_dimensions();
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
-                renderer.render(width, height, self.obj().time_milis());
+                renderer.render(width, height, self.time_milis());
             }
             glib::Propagation::Stop
         }
     }
 
     impl DanmakwArea {
+        #[inline]
+        fn time_milis(&self) -> f64 {
+            if let Some(clock) = self.clock.borrow_mut().as_mut() {
+                clock.time_milis()
+            } else {
+                0.0
+            }
+        }
+
         fn get_dimensions(&self) -> (u32, u32) {
             let scale = self.obj().scale_factor();
             let width = self.obj().width();
@@ -130,13 +157,30 @@ mod imp {
         }
 
         fn font_name(&self) -> String {
-            self.obj()
-                .pango_context()
-                .font_description()
-                .unwrap()
-                .family()
-                .unwrap()
-                .to_string()
+            let Some(fd) = self.obj().pango_context().font_description() else {
+                return String::new();
+            };
+
+            let Some(ff) = fd.family() else {
+                return String::new();
+            };
+
+            ff.to_string()
+        }
+
+        pub fn start_clock(&self) {
+            if let Some(clock) = self.clock.borrow_mut().as_mut() {
+                clock.resume();
+            } else {
+                self.clock.replace(Some(DanmakuClock::new(self.obj().speed_factor())));
+                self.start_clock();
+            }
+        }
+
+        pub fn pause_clock(&self) {
+            if let Some(clock) = self.clock.borrow_mut().as_mut() {
+                clock.pause();
+            }
         }
 
         pub fn set_render_loop_callback_id(&self, callback_id: TickCallbackId) {
@@ -156,8 +200,13 @@ mod imp {
 
         fn set_speed_factor(&self, speed_factor: f64) {
             self.speed_factor.replace(speed_factor);
+
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.danmaku_renderer.set_speed_factor(speed_factor);
+            }
+
+            if let Some(clock) = self.clock.borrow_mut().as_mut() {
+                clock.set_speed_factor(speed_factor);
             }
         }
 
@@ -208,13 +257,6 @@ mod imp {
             self.paused.replace(paused);
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.danmaku_renderer.set_paused(paused);
-            }
-        }
-
-        fn set_time_milis(&self, time_milis: f64) {
-            self.time_milis.replace(time_milis);
-            if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
-                renderer.danmaku_renderer.set_video_time(time_milis);
             }
         }
 
@@ -279,20 +321,18 @@ impl DanmakwArea {
         glib::Object::new()
     }
 
-    pub fn start_rendering(&self, timer: impl Timer + Clone + 'static) {
+    pub fn play(&self) {
         if !self.enable_danmaku() {
             return;
         }
 
+        self.imp().start_clock();
         let id = self.add_tick_callback(glib::clone!(
             #[weak(rename_to = obj)]
             self,
-            #[strong]
-            timer,
             #[upgrade_or]
             glib::ControlFlow::Continue,
             move |_, _| {
-                *obj.imp().time_milis.borrow_mut() = timer.time_milis();
                 obj.queue_draw();
                 glib::ControlFlow::Continue
             }
@@ -301,12 +341,12 @@ impl DanmakwArea {
         self.imp().set_render_loop_callback_id(id);
     }
 
-    pub fn stop_rendering(&self) {
+    pub fn pause(&self) {
         if let Some(id) = self.imp().get_render_loop_callback_id() {
             id.remove();
-
-            self.clear_danmaku();
         }
+
+        self.imp().pause_clock();
     }
 
     pub fn set_danmaku(&self, danmaku: Vec<crate::Danmaku>) {
@@ -319,5 +359,11 @@ impl DanmakwArea {
         if let Some(renderer) = self.imp().renderer.borrow_mut().as_mut() {
             renderer.danmaku_renderer.clear();
         }
+    }
+
+    pub fn seek(&self, time_milis: f64) {
+        if let Some(clock) = self.imp().clock.borrow_mut().as_mut() {
+            clock.seek(time_milis);
+        };
     }
 }

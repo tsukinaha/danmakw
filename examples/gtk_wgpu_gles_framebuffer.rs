@@ -4,26 +4,6 @@ use adw::prelude::*;
 use gtk::glib;
 mod utils;
 
-#[derive(Clone)]
-struct Timer {
-    pub milis: RefCell<f64>,
-}
-
-impl danmakw::Timer for Timer {
-    fn time_milis(&self) -> f64 {
-        *self.milis.borrow_mut() += 1000.0 / 165.0;
-        *self.milis.borrow()
-    }
-}
-
-impl Timer {
-    pub fn new() -> Self {
-        Self {
-            milis: RefCell::new(0.0),
-        }
-    }
-}
-
 pub fn build_ui(application: &gtk::Application) {
     let window = adw::ApplicationWindow::builder()
         .application(application)
@@ -48,8 +28,7 @@ pub fn build_ui(application: &gtk::Application) {
             glib::timeout_future_seconds(1).await;
             let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
             area.set_danmaku(danmakus);
-            area.set_enable_danmaku(true);
-            area.start_rendering(Timer::new());
+            area.play();
         }
     ));
 

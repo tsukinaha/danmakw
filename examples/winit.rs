@@ -1,4 +1,4 @@
-use danmakw::Renderer;
+use danmakw::{DanmakuClock, Renderer};
 use std::sync::Arc;
 use wgpu::{
     CompositeAlphaMode,
@@ -34,6 +34,7 @@ struct WindowState {
     surface_config: SurfaceConfiguration,
     renderer: Renderer,
     window: Arc<Window>,
+    clock: DanmakuClock,
 }
 
 impl WindowState {
@@ -88,6 +89,7 @@ impl WindowState {
         let danmakus = utils::parse_bilibili_xml(include_str!("test.xml")).unwrap();
 
         renderer.init(danmakus);
+        renderer.set_font_name("Noto Sans".to_string());
 
         Self {
             device,
@@ -96,6 +98,7 @@ impl WindowState {
             surface_config,
             renderer,
             window,
+            clock: DanmakuClock::new(1.0),
         }
     }
 }
@@ -142,7 +145,7 @@ impl winit::application::ApplicationHandler for Application {
             surface,
             surface_config,
             renderer,
-            ..
+            clock
         } = state;
 
         match event {
@@ -157,11 +160,11 @@ impl winit::application::ApplicationHandler for Application {
             }
             WindowEvent::RedrawRequested => {
                 let instant = std::time::Instant::now();
-                renderer.update(1000.0 / 165.0);
 
                 match surface.get_current_texture() {
                     Ok(frame) => {
                         let view = frame.texture.create_view(&TextureViewDescriptor::default());
+                        renderer.update(clock.time_milis());
                         if let Err(e) = renderer.render(
                             device,
                             queue,
@@ -197,7 +200,7 @@ impl winit::application::ApplicationHandler for Application {
                     Err(e) => eprintln!("Error acquiring frame: {e:?}"),
                 }
 
-                dbg!("Frame time: {:?}", instant.elapsed());
+                dbg!(instant.elapsed());
             }
             WindowEvent::CloseRequested => event_loop.exit(),
             _ => {}
