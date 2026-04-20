@@ -21,7 +21,12 @@ impl Renderer {
     // Hard set the video time
     pub fn set_video_time(&mut self, time: f64) {
         self.0.danmaku_queue.reset_time(time);
+        self.0.video_time = time;
         self.clear();
+    }
+
+    pub fn seek_with_preroll(&mut self, time: f64) {
+        self.0.rebuild_visible_state_at(time);
     }
 
     pub fn init(&mut self, danmaku: Vec<Danmaku>) {

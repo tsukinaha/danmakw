@@ -119,6 +119,7 @@ struct OffscreenLayer {
 const SCROLL_DURATION_MS: f32 = 8000.0;
 const CENTER_DURATION_MS: f32 = 5000.0;
 const RESET_DELTA_MS: f32 = 1000.0;
+const SEEK_PREROLL_STEP_MS: f64 = 50.0;
 const COMPOSITE_SHADER: &str = include_str!("shader.wgsl");
 
 impl RendererInner {
@@ -439,11 +440,29 @@ impl RendererInner {
         }
     }
 
-    pub fn update(&mut self, time_milis: f64) {
-        if self.paused {
-            return;
+    pub fn rebuild_visible_state_at(&mut self, time_milis: f64) {
+        let preroll_ms = SCROLL_DURATION_MS.max(CENTER_DURATION_MS) as f64;
+        let start_time = (time_milis - preroll_ms).max(0.0);
+
+        self.scroll_danmaku.clear();
+        self.top_center_danmaku.clear();
+        self.bottom_center_danmaku.clear();
+        self.top_center_row_occupied.fill(false);
+        self.bottom_center_row_occupied.fill(false);
+
+        self.danmaku_queue.reset_time(start_time);
+        self.video_time = start_time;
+
+        let mut simulated_time = start_time;
+        while simulated_time + SEEK_PREROLL_STEP_MS < time_milis {
+            simulated_time += SEEK_PREROLL_STEP_MS;
+            self.update(simulated_time);
         }
 
+        self.update(time_milis);
+    }
+
+    pub fn update(&mut self, time_milis: f64) {
         let delta_time = (time_milis - self.video_time) as f32;
         self.video_time = time_milis;
 

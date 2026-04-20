@@ -135,7 +135,7 @@ mod imp {
             if let Some(renderer) = self.renderer.borrow_mut().as_mut() {
                 renderer.render(width, height, self.time_milis());
             }
-            glib::Propagation::Stop
+            glib::Propagation::Proceed
         }
     }
 
@@ -365,5 +365,11 @@ impl DanmakwArea {
         if let Some(clock) = self.imp().clock.borrow_mut().as_mut() {
             clock.seek(time_milis);
         };
+
+        if let Some(renderer) = self.imp().renderer.borrow_mut().as_mut() {
+            renderer.danmaku_renderer.seek_with_preroll(time_milis);
+        }
+
+        self.queue_draw();
     }
 }
