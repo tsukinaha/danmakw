@@ -1,3 +1,5 @@
+## DEPRECATED: MOVE TO GSK PANGO IMPL: tsukinaha/mutsumi
+
 ## Danmakw
 WGPU based danmaku renderer
 
